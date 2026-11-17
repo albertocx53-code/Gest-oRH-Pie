@@ -28,7 +28,13 @@ Professor: Marcos Gomes da Silva Rocha
 | `Aurora.Tests` | Testes |
 | `Executar` | Versão compilada anterior (ainda sem o banco) |
 
-## Como rodar
+## Versão web
+
+A pasta `site/sistema` tem uma versão do sistema que roda no navegador, com as mesmas telas e regras. Ela usa o mesmo banco SQLite e os mesmos scripts SQL (biblioteca sql.js), e os dados ficam salvos no navegador.
+
+Publicada em: https://gestao-rh-teal.vercel.app/sistema/
+
+## Como rodar (Windows)
 
 1. Abrir `Aurora.slnx` no Visual Studio (precisa do .NET 10 e de Windows).
 2. Na primeira vez, o Visual Studio baixa o pacote `Microsoft.Data.Sqlite`.
