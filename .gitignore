@@ -1,0 +1,8 @@
+# Arquivos gerados pelo build
+bin/
+obj/
+.vs/
+*.user
+
+# Banco criado ao rodar o sistema (o aurora_exemplo.db da pasta BancoDeDados continua no repositório)
+aurora.db
