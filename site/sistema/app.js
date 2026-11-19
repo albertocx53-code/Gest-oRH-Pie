@@ -65,11 +65,22 @@ window.addEventListener("DOMContentLoaded", async () => {
     botao.disabled = true;
     botao.textContent = "Entrando…";
     $("erro-login").hidden = true;
-    const sessao = await entrar(dados.get("usuario"), dados.get("senha"));
+    let sessao = null;
+    try {
+      if (!window.crypto || !crypto.subtle) throw new Error("este navegador não liberou a criptografia. Abra pelo endereço https://gestao-rh-teal.vercel.app/sistema/");
+      sessao = await entrar(dados.get("usuario"), dados.get("senha"));
+    } catch (erro) {
+      botao.disabled = false;
+      botao.textContent = "Entrar";
+      $("erro-login").textContent = "Não foi possível entrar: " + erro.message;
+      $("erro-login").hidden = false;
+      return;
+    }
     botao.disabled = false;
     botao.textContent = "Entrar";
     if (!sessao) {
-      $("erro-login").textContent = "Usuário ou senha incorretos.";
+      // senha com espaço sobrando no fim (comum no celular) também cai aqui
+      $("erro-login").textContent = "Usuário ou senha incorretos. Confira a senha: Aurora.demo26 (com A maiúsculo e sem espaço no fim).";
       $("erro-login").hidden = false;
       return;
     }
