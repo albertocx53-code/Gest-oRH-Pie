@@ -22,6 +22,7 @@ internal static class TestProgram
             CheckServices();
             TesteDoBanco.Rodar(); // testes do banco SQLite (Alberto)
             TesteDoPonto.Rodar(); // testes do ponto e frequência (Clóvis)
+            TesteSalarios.Rodar(); // folha de pagamento em memória e no banco (Diaz)
             CheckWindows();
             Console.WriteLine("Serviços e fluxos do Windows Forms aprovados.");
             return 0;
@@ -196,6 +197,15 @@ internal static class TestProgram
             Click(modal, "Confirmar");
         });
         Check(Grid(main, "Lançamentos salariais").Rows.Cast<DataGridViewRow>().Any(row => row.Cells[4].Value?.ToString()?.Contains("5.450,00") == true), "folha mostra o líquido");
+        // Diaz: editar um lançamento existente pela grade (muda só os descontos: 5.200 + 300 - 150)
+        var folha = Grid(main, "Lançamentos salariais");
+        folha.CurrentCell = folha.Rows.Cast<DataGridViewRow>().First(row => row.Cells[4].Value?.ToString()?.Contains("5.450,00") == true).Cells[0];
+        Dialog(main, "Editar lançamento", "Editar lançamento", modal =>
+        {
+            Input<NumericUpDown>(modal, "Descontos (R$)").Value = 150;
+            Click(modal, "Confirmar");
+        });
+        Check(Grid(main, "Lançamentos salariais").Rows.Cast<DataGridViewRow>().Any(row => row.Cells[4].Value?.ToString()?.Contains("5.350,00") == true), "edição do lançamento atualiza o líquido");
     }
 
     private static void Dialog(Form owner, string openingButton, string title, Action<Form> fill)
