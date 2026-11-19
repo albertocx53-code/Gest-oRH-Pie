@@ -21,6 +21,7 @@ internal static class TestProgram
         {
             CheckServices();
             TesteDoBanco.Rodar(); // testes do banco SQLite (Alberto)
+            TesteDoPonto.Rodar(); // testes do ponto e frequência (Clóvis)
             CheckWindows();
             Console.WriteLine("Serviços e fluxos do Windows Forms aprovados.");
             return 0;

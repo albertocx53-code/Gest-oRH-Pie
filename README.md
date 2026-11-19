@@ -5,13 +5,23 @@ Sistema desktop de gestão de RH feito em C# (.NET 10, Windows Forms) com banco 
 Trabalho da disciplina de **Programação Orientada a Objetos** · UniFacema
 Professor: Marcos Gomes da Silva Rocha
 
-**Equipe:** Alberto · Rickelmy · Paulo Victor · Jefferson · Clóvis · Kerlon · Cleberson Dias
+## Equipe
+
+| Integrante | Parte |
+| --- | --- |
+| Alberto | Banco de dados (tabelas, scripts SQL e camada de acesso aos dados) |
+| Rickelmy | Interface e back-end (telas, login, permissões e regras) |
+| Clóvis | Ponto e frequência (lançar falta e atraso, consulta por período) |
+| Jefferson | Cadastro de funcionários |
+| Paulo Victor | Interface |
+| Kerlon | [parte] |
+| Cleberson Dias | [parte] |
 
 ## O que o sistema faz
 
 - Login com três perfis: Administrador, Recursos Humanos e Gestor
 - Cadastro de funcionários
-- Controle de ponto (presença, atraso e falta)
+- Controle de ponto (presença, atraso e falta), com lançamento de falta e atraso e frequência por período
 - Recrutamento (vagas e candidatos)
 - Agenda do RH
 - Folha de pagamento
@@ -21,7 +31,7 @@ Professor: Marcos Gomes da Silva Rocha
 
 | Pasta | Conteúdo |
 | --- | --- |
-| `Aurora.Core` | Modelos, regras de negócio (`RhService`) e login (`Authentication`) |
+| `Aurora.Core` | Modelos, regras de negócio (`RhService`), login (`Authentication`) e frequência do ponto (`FrequenciaDePonto`) |
 | `Aurora.WinForms` | Telas do sistema |
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `BancoDeDados` | Scripts SQL, diagrama das tabelas e banco de exemplo |

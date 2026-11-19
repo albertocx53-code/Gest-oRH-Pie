@@ -150,6 +150,10 @@ internal sealed partial class AuroraForm
         Status("Cadastro excluído");
     }
 
+    // Clóvis: tela de Ponto e frequência. Em cima ficam o dia consultado e o resumo do dia
+    // (entradas, atrasos e faltas). No meio, a tabela dos registros desse dia. Embaixo, os botões.
+    // Cada linha da tabela guarda o registro de ponto no Tag, e é por ele que Editar registro sabe qual abrir.
+    // O que eu acrescentei (Lançar falta, Lançar atraso e Consultar período) está em AuroraForm.Ponto.cs.
     private Panel TimePage()
     {
         // O filtro atual consulta um dia. AttendanceBetween também atende futuras consultas por período.
@@ -195,6 +199,8 @@ internal sealed partial class AuroraForm
         }
         date.ValueChanged += (_, _) => Filter();
         Filter();
+        // Parte do Clóvis: botões Lançar falta, Lançar atraso e Consultar período (AuroraForm.Ponto.cs).
+        FerramentasDoPonto(panel);
         return panel;
     }
 

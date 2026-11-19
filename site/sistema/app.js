@@ -7,7 +7,12 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 
 let servico = null;
 let telaAtual = "painel";
-const estado = { diaPonto: HOJE, mesFolha: HOJE.slice(0, 7), busca: "" };
+const estadoInicial = () => ({
+  diaPonto: HOJE, mesFolha: HOJE.slice(0, 7), busca: "",
+  modoPonto: "dia", // "dia" ou "periodo" (Consultar período, parte do Clóvis)
+  periodo: { de: HOJE.slice(0, 8) + "01", ate: HOJE, pessoa: "", ocorrencia: "" },
+});
+let estado = estadoInicial();
 
 const $ = (id) => document.getElementById(id);
 const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -99,6 +104,7 @@ function mostrarLogin() {
 }
 
 function abrirSistema() {
+  estado = estadoInicial(); // cada login começa com os filtros padrão
   $("tela-login").hidden = true;
   $("tela-sistema").hidden = false;
   $("avatar").textContent = servico.sessao.nome.charAt(0).toUpperCase();
@@ -109,7 +115,7 @@ function abrirSistema() {
 }
 
 const TITULOS = {
-  painel: "Painel", funcionarios: "Funcionários", ponto: "Ponto",
+  painel: "Painel", funcionarios: "Funcionários", ponto: "Ponto e frequência",
   recrutamento: "Recrutamento", agenda: "Agenda", salarios: "Salários",
 };
 
@@ -233,6 +239,7 @@ const TELAS = {
   },
 
   ponto() {
+    if (estado.modoPonto === "periodo") return TELAS.periodo();
     const registros = servico.pontosEntre(estado.diaPonto, estado.diaPonto);
     const presentes = registros.filter((r) => r.entrada).length;
     return `
@@ -240,7 +247,8 @@ const TELAS = {
         <label>Dia<input type="date" id="dia-ponto" value="${estado.diaPonto}"></label>
         <p class="muted" style="padding-bottom:10px">${presentes} presente(s) · ${registros.length} registro(s)</p>
         <span class="espaco"></span>
-        ${servico.podeEditar ? `<button class="btn primario" id="registrar-ponto">Registrar ponto</button>` : ""}
+        <button class="btn contorno" id="consultar-periodo">Consultar período</button>
+        ${servico.podeEditar ? `<button class="btn contorno" id="lancar-falta">Lançar falta</button><button class="btn contorno" id="lancar-atraso">Lançar atraso</button><button class="btn primario" id="registrar-ponto">Registrar ponto</button>` : ""}
       </div>
       <div class="cartao tabela-rolagem"><table>
         <thead><tr><th>Funcionário</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Motivo</th>${servico.podeEditar ? "<th></th>" : ""}</tr></thead>
@@ -249,6 +257,55 @@ const TELAS = {
           ${servico.podeEditar ? `<td><div class="acoes-linha"><button class="mini" data-editar-ponto="${r.pessoa}">Editar registro</button></div></td>` : ""}
         </tr>`).join("") || `<tr><td colspan="6" class="vazio">Nenhum registro de ponto nesse dia.</td></tr>`}</tbody>
       </table></div>`;
+  },
+
+  // Frequência por período (parte do Clóvis)
+  periodo() {
+    const f = estado.periodo;
+    let r, erro = "";
+    try {
+      r = servico.resumoDoPeriodo(f.de, f.ate, f.pessoa ? Number(f.pessoa) : null, f.ocorrencia || null);
+    } catch (e) {
+      if (!(e instanceof ErroRegra)) throw e;
+      // período inválido: mostra o aviso e deixa os filtros na tela para corrigir
+      erro = e.message;
+      r = { registros: [], total: 0, presencas: 0, atrasos: 0, faltas: 0, horas: 0, porFuncionario: [], comparecimento: 0 };
+    }
+    const funcionarios = servico.funcionarios;
+    const opcao = (v, t, sel) => `<option value="${esc(v)}" ${String(v) === String(sel) ? "selected" : ""}>${esc(t)}</option>`;
+    const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+    return `
+      <div class="barra-acoes">
+        <button class="btn contorno" id="voltar-dia">← Voltar para o dia</button>
+        <span class="espaco"></span>
+      </div>
+      <div class="cartao" style="margin-bottom:16px">
+        <h3>Frequência por período</h3>
+        <p class="muted" style="margin:-8px 0 14px">Presenças, atrasos e faltas de um intervalo de até ${Frequencia.maximoDeDias} dias.</p>
+        <div class="barra-acoes" style="margin-bottom:0">
+          <label>De<input type="date" id="per-de" value="${f.de}"></label>
+          <label>Até<input type="date" id="per-ate" value="${f.ate}"></label>
+          <label>Funcionário<select id="per-pessoa">${opcao("", "Todos os funcionários", f.pessoa)}${funcionarios.map((x) => opcao(x.id, x.nome, f.pessoa)).join("")}</select></label>
+          <label>Ocorrência<select id="per-ocorrencia">${opcao("", "Todas as ocorrências", f.ocorrencia)}${Opcoes.situacoesPonto.map((o) => opcao(o, o, f.ocorrencia)).join("")}</select></label>
+        </div>
+        ${erro ? `<p class="erro" style="margin-top:12px">${esc(erro)}</p>` : ""}
+      </div>
+      <div class="metricas">
+        <div class="cartao metrica"><span class="rotulo">Registros</span><div class="valor">${r.total}</div><small>${dataBR(f.de)} a ${dataBR(f.ate)}</small></div>
+        <div class="cartao metrica"><span class="rotulo">Presenças e atrasos</span><div class="valor">${r.presencas + r.atrasos}</div><small>${plural(r.presencas, "presença", "presenças")} · ${plural(r.atrasos, "atraso", "atrasos")}</small></div>
+        <div class="cartao metrica"><span class="rotulo">Faltas</span><div class="valor">${r.faltas}</div><small>comparecimento de ${Math.round(r.comparecimento * 100)}%</small></div>
+        <div class="cartao metrica"><span class="rotulo">Horas trabalhadas</span><div class="valor" style="font-size:26px">${Frequencia.formatarHoras(r.horas)}</div><small>da entrada até a saída</small></div>
+      </div>
+      <div class="duas">
+        <div class="cartao tabela-rolagem"><h3>Registros do período</h3><table>
+          <thead><tr><th>Dia</th><th>Funcionário</th><th>Entrada</th><th>Saída</th><th>Situação</th><th>Motivo</th></tr></thead>
+          <tbody>${r.registros.map((x) => `<tr><td>${dataBR(x.dia)}</td><td>${esc(servico.nome(x.pessoa))}</td><td>${x.entrada || "—"}</td><td>${x.saida || "—"}</td><td>${etiqueta(x.situacao)}</td><td class="muted">${esc(x.motivo)}</td></tr>`).join("") || `<tr><td colspan="6" class="vazio">Nenhum registro nesse período.</td></tr>`}</tbody>
+        </table></div>
+        <div class="cartao tabela-rolagem"><h3>Por funcionário</h3><table>
+          <thead><tr><th>Nome</th><th class="num">Pres.</th><th class="num">Atr.</th><th class="num">Faltas</th><th class="num">Horas</th></tr></thead>
+          <tbody>${r.porFuncionario.map((x) => `<tr><td>${esc(x.nome)}</td><td class="num">${x.presencas}</td><td class="num">${x.atrasos}</td><td class="num">${x.faltas}</td><td class="num">${Frequencia.formatarHoras(x.horas)}</td></tr>`).join("") || `<tr><td colspan="5" class="vazio">—</td></tr>`}</tbody>
+        </table></div>
+      </div>`;
   },
 
   recrutamento() {
@@ -352,6 +409,26 @@ function formPonto(registro) {
   $("form-janela").elements.pessoa.disabled = edicao; // na edição o funcionário não muda (faz parte da chave)
 }
 
+// Lançar falta / Lançar atraso (parte do Clóvis)
+function formOcorrencia(tipo) {
+  const equipe = servico.funcionarios.filter((f) => f.situacao === "Ativo");
+  if (!equipe.length) { aviso("Cadastre um funcionário ativo primeiro", true); return; }
+  const inicial = servico.semRegistro(estado.diaPonto)[0] || equipe[0];
+  const falta = tipo === "Falta";
+  const campos = [
+    { nome: "pessoa", rotulo: "Funcionário", tipo: "select", opcoes: equipe.map((f) => [f.id, f.nome]), valor: inicial.id },
+    { nome: "dia", rotulo: "Data", tipo: "date", valor: estado.diaPonto },
+  ];
+  if (!falta) campos.push({ nome: "entrada", rotulo: "Entrada", tipo: "time", valor: "08:15" }, { nome: "saida", rotulo: "Saída", tipo: "time", valor: "17:00" });
+  campos.push({ nome: "motivo", rotulo: "Motivo (opcional)", tipo: "textarea", max: 240 });
+  campos.push({ tipo: "aviso", texto: falta ? "A falta fica sem horário de entrada e de saída." : `No atraso, a entrada precisa ser depois das ${Frequencia.horarioPadrao}.` });
+  abrirJanela(falta ? "Lançar falta" : "Lançar atraso", campos, (v) => {
+    if (falta) servico.lancarFalta(Number(v.pessoa), v.dia, v.motivo, HOJE);
+    else servico.lancarAtraso(Number(v.pessoa), v.dia, v.entrada, v.saida, v.motivo, HOJE);
+    estado.diaPonto = v.dia;
+  });
+}
+
 function formCandidato(c) {
   const novo = !c;
   const vagas = servico.vagas.filter((v) => v.situacao === "Aberta" || (c && v.id === c.vaga));
@@ -398,8 +475,14 @@ const LIGACOES = {
     });
   },
   ponto() {
-    $("dia-ponto").addEventListener("change", (e) => { if (e.target.value) { estado.diaPonto = e.target.value; desenhar(); } });
+    ao("#dia-ponto", "change", (e) => { if (e.target.value) { estado.diaPonto = e.target.value; desenhar(); } });
     ao("#registrar-ponto", "click", () => formPonto(null));
+    ao("#lancar-falta", "click", () => formOcorrencia("Falta"));
+    ao("#lancar-atraso", "click", () => formOcorrencia("Atraso"));
+    ao("#consultar-periodo", "click", () => { estado.modoPonto = "periodo"; desenhar(); });
+    ao("#voltar-dia", "click", () => { estado.modoPonto = "dia"; desenhar(); });
+    const filtro = (id, campo) => ao(id, "change", (e) => { estado.periodo[campo] = e.target.value; desenhar(); });
+    filtro("#per-de", "de"); filtro("#per-ate", "ate"); filtro("#per-pessoa", "pessoa"); filtro("#per-ocorrencia", "ocorrencia");
     ao("[data-editar-ponto]", "click", (e) => {
       const pessoa = Number(e.target.dataset.editarPonto);
       formPonto(servico.pontosEntre(estado.diaPonto, estado.diaPonto).find((r) => r.pessoa === pessoa));

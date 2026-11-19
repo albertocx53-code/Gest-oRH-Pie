@@ -209,3 +209,81 @@ class Servico {
     });
   }
 }
+
+// ---------- ponto e frequência (FrequenciaDePonto.cs, parte do Clóvis) ----------
+const Frequencia = {
+  horarioPadrao: "08:00", // entrar depois disso é atraso
+  maximoDeDias: 366,
+
+  minutos(hora) {
+    const [h, m] = hora.split(":").map(Number);
+    return h * 60 + m;
+  },
+
+  // horas entre entrada e saída, em minutos (falta ou horário inválido = 0)
+  horasTrabalhadas(r) {
+    if (!horaValida(r.entrada) || !horaValida(r.saida) || r.saida <= r.entrada) return 0;
+    return this.minutos(r.saida) - this.minutos(r.entrada);
+  },
+
+  formatarHoras(minutos) {
+    return `${Math.floor(minutos / 60)} h ${String(minutos % 60).padStart(2, "0")} min`;
+  },
+
+  diasEntre(de, ate) {
+    const d = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+    return Math.round((d(ate) - d(de)) / 86400000);
+  },
+};
+
+Servico.prototype.consultarPeriodo = function (de, ate, matricula = null, ocorrencia = null) {
+  dataValida(de); dataValida(ate);
+  exigir(de <= ate, "A data final deve ser igual ou posterior à inicial.");
+  exigir(Frequencia.diasEntre(de, ate) <= Frequencia.maximoDeDias - 1, `O período pode ter no máximo ${Frequencia.maximoDeDias} dias.`);
+  const funcionarios = this.funcionarios;
+  if (matricula !== null) exigir(funcionarios.some((f) => f.id === matricula), "Funcionário não encontrado.");
+  if (ocorrencia !== null) exigir(Opcoes.situacoesPonto.includes(ocorrencia), "Selecione uma ocorrência válida.");
+  const nomes = Object.fromEntries(funcionarios.map((f) => [f.id, f.nome]));
+  return this.pontosEntre(de, ate)
+    .filter((r) => matricula === null || r.pessoa === matricula)
+    .filter((r) => ocorrencia === null || r.situacao === ocorrencia)
+    .sort((a, b) => a.dia.localeCompare(b.dia) || (nomes[a.pessoa] || "").localeCompare(nomes[b.pessoa] || "", "pt-BR") || a.pessoa - b.pessoa);
+};
+
+Servico.prototype.resumoDoPeriodo = function (de, ate, matricula = null, ocorrencia = null) {
+  const registros = this.consultarPeriodo(de, ate, matricula, ocorrencia);
+  const conta = (lista, s) => lista.filter((r) => r.situacao === s).length;
+  const somar = (lista) => lista.reduce((t, r) => t + Frequencia.horasTrabalhadas(r), 0);
+  const grupos = {};
+  registros.forEach((r) => (grupos[r.pessoa] = grupos[r.pessoa] || []).push(r));
+  const porFuncionario = Object.entries(grupos)
+    .map(([id, lista]) => ({ matricula: +id, nome: this.nome(+id), presencas: conta(lista, "Presença"), atrasos: conta(lista, "Atraso"), faltas: conta(lista, "Falta"), horas: somar(lista) }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const presencas = conta(registros, "Presença"), atrasos = conta(registros, "Atraso");
+  return {
+    registros, total: registros.length, presencas, atrasos, faltas: conta(registros, "Falta"), horas: somar(registros), porFuncionario,
+    // quem chegou atrasado também compareceu
+    comparecimento: registros.length ? (presencas + atrasos) / registros.length : 0,
+  };
+};
+
+Servico.prototype.semRegistro = function (dia) {
+  const comRegistro = new Set(this.pontosEntre(dia, dia).map((r) => r.pessoa));
+  return this.funcionarios.filter((f) => f.situacao === "Ativo" && !comRegistro.has(f.id));
+};
+
+Servico.prototype.conferirDiaDoLancamento = function (dia, hoje) {
+  if (this.podeEditar && dia > hoje) throw new ErroRegra("Não é possível lançar falta ou atraso em uma data futura.");
+};
+
+Servico.prototype.lancarFalta = function (matricula, dia, motivo, hoje) {
+  this.conferirDiaDoLancamento(dia, hoje);
+  this.salvarPonto({ pessoa: matricula, dia, entrada: "", saida: "", situacao: "Falta", motivo }, false);
+};
+
+Servico.prototype.lancarAtraso = function (matricula, dia, entrada, saida, motivo, hoje) {
+  this.conferirDiaDoLancamento(dia, hoje);
+  if (this.podeEditar && horaValida((entrada || "").trim()) && entrada.trim() <= Frequencia.horarioPadrao)
+    throw new ErroRegra(`Para lançar atraso, a entrada deve ser depois das ${Frequencia.horarioPadrao}.`);
+  this.salvarPonto({ pessoa: matricula, dia, entrada, saida, situacao: "Atraso", motivo }, false);
+};

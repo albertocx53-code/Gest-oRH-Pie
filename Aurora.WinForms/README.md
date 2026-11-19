@@ -15,3 +15,5 @@ A senha fictícia das três contas é `Aurora.demo26`. O perfil Gestor consulta 
 Para executar os testes no Windows, rode `dotnet run --project Aurora.Tests -c Release`. Consulte `RELATORIO_RICKELMY.md` para localizar as regras e os contratos que Alberto usará na integração com o banco.
 
 **Banco de dados (Alberto):** ao rodar pelo Visual Studio, os dados ficam salvos no arquivo `aurora.db`, criado ao lado do executável na primeira execução. Para voltar aos dados iniciais, feche o sistema e apague esse arquivo. Os scripts SQL e a explicação das tabelas ficam na pasta `BancoDeDados` e em `RELATORIO_ALBERTO.md`.
+
+**Ponto e frequência (Clóvis):** na área Ponto e frequência, **Lançar falta** e **Lançar atraso** registram a ocorrência de um funcionário ativo em um dia, e **Consultar período** abre a frequência de qualquer intervalo de até 366 dias, com filtro por funcionário e ocorrência, os totais do período e os totais de cada funcionário. Lançar é só para Administrador e Recursos Humanos; o Gestor consulta. As consultas em SQL estão em `BancoDeDados/05_consultas_ponto.sql`.

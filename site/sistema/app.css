@@ -120,7 +120,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;color:var(--apagado);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;border-bottom:1px solid var(--borda)}
 td{padding:12px;border-bottom:1px solid rgba(53,61,81,.6);vertical-align:middle}
 tr:last-child td{border-bottom:0}
-td.num{font-variant-numeric:tabular-nums;text-align:right}
+td.num{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
 th.num{text-align:right}
 td .acoes-linha{display:flex;gap:6px;justify-content:flex-end}
 tfoot td{font-weight:700;border-top:1px solid var(--borda)}
