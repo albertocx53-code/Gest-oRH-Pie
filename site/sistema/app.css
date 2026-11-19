@@ -146,3 +146,6 @@ dialog h3{font-size:20px;margin-bottom:16px}
 
 .aviso{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#2e3d3a;color:var(--verde);border:1px solid #3e5a50;padding:12px 20px;border-radius:12px;font-weight:600;z-index:50;max-width:90vw}
 .aviso.ruim{background:#3d2a2e;color:var(--vermelho);border-color:#5a3e44}
+.ficha{width:100%}
+.ficha th{text-transform:none;letter-spacing:0;font-size:13px;width:38%;padding:8px 10px 8px 0;border-bottom:1px solid rgba(53,61,81,.6)}
+.ficha td{padding:8px 0;font-size:14px}

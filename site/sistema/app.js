@@ -8,7 +8,7 @@ const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julh
 let servico = null;
 let telaAtual = "painel";
 const estadoInicial = () => ({
-  diaPonto: HOJE, mesFolha: HOJE.slice(0, 7), busca: "",
+  diaPonto: HOJE, mesFolha: HOJE.slice(0, 7), busca: "", filtroDep: "", filtroSit: "",
   modoPonto: "dia", // "dia" ou "periodo" (Consultar período, parte do Clóvis)
   periodo: { de: HOJE.slice(0, 8) + "01", ate: HOJE, pessoa: "", ocorrencia: "" },
 });
@@ -155,6 +155,7 @@ function abrirJanela(titulo, campos, aoSalvar, textoBotao = "Salvar") {
   $("janela-titulo").textContent = titulo;
   $("janela-ok").textContent = textoBotao;
   $("janela-erro").hidden = true;
+  $("janela-cancelar").hidden = false;
   $("janela-campos").innerHTML = campos.map(htmlCampo).join("");
   const form = $("form-janela");
   form.onsubmit = async (e) => {
@@ -179,6 +180,7 @@ function abrirJanela(titulo, campos, aoSalvar, textoBotao = "Salvar") {
 
 function htmlCampo(c) {
   if (c.tipo === "aviso") return `<p class="muted">${esc(c.texto)}</p>`;
+  if (c.tipo === "html") return c.html;
   const valor = esc(c.valor ?? "");
   let entrada;
   if (c.tipo === "select") {
@@ -189,7 +191,8 @@ function htmlCampo(c) {
   } else if (c.tipo === "textarea") {
     entrada = `<textarea name="${c.nome}" maxlength="${c.max || 240}">${valor}</textarea>`;
   } else {
-    entrada = `<input name="${c.nome}" type="${c.tipo || "text"}" value="${valor}" ${c.max ? `maxlength="${c.max}"` : ""} ${c.so_leitura ? "readonly" : ""} ${c.dica ? `placeholder="${esc(c.dica)}"` : ""}>`;
+    entrada = `<input name="${c.nome}" type="${c.tipo || "text"}" value="${valor}" ${c.max ? `maxlength="${c.max}"` : ""} ${c.so_leitura ? "readonly" : ""} ${c.dica ? `placeholder="${esc(c.dica)}"` : ""} ${c.sugestoes ? `list="sug-${c.nome}" autocomplete="off"` : ""}>`;
+    if (c.sugestoes) entrada += `<datalist id="sug-${c.nome}">${c.sugestoes.map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`;
   }
   return `<label>${esc(c.rotulo)}${entrada}</label>`;
 }
@@ -231,20 +234,27 @@ const TELAS = {
   },
 
   funcionarios() {
-    const busca = estado.busca.toLowerCase();
+    // busca ignora maiúsculas e acentos ("operacoes" encontra "Operações")
+    const semAcento = (t) => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const busca = semAcento(estado.busca);
     const lista = servico.funcionarios.filter((f) =>
-      !busca || [f.nome, f.cargo, f.departamento, String(f.id)].some((x) => x.toLowerCase().includes(busca)));
+      (!busca || [f.nome, f.cargo, f.departamento, String(f.id)].some((x) => semAcento(x).includes(busca))) &&
+      (!estado.filtroDep || f.departamento === estado.filtroDep) &&
+      (!estado.filtroSit || f.situacao === estado.filtroSit));
+    const opcao = (v, t, sel) => `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(t)}</option>`;
     return `
       <div class="barra-acoes">
         <label>Buscar<input id="busca" value="${esc(estado.busca)}" placeholder="Nome, cargo ou departamento"></label>
+        <label>Departamento<select id="filtro-dep">${opcao("", "Todos os departamentos", estado.filtroDep)}${Opcoes.departamentos.map((d) => opcao(d, d, estado.filtroDep)).join("")}</select></label>
+        <label>Situação<select id="filtro-sit">${opcao("", "Todas as situações", estado.filtroSit)}${Opcoes.situacoesFuncionario.map((d) => opcao(d, d, estado.filtroSit)).join("")}</select></label>
         <span class="espaco"></span>
         ${servico.podeEditar ? `<button class="btn primario" id="novo-funcionario">Novo funcionário</button>` : ""}
       </div>
       <div class="cartao tabela-rolagem"><table>
-        <thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Situação</th><th>Admissão</th>${servico.podeEditar ? "<th></th>" : ""}</tr></thead>
+        <thead><tr><th>Matrícula</th><th>Nome</th><th>Cargo</th><th>Departamento</th><th>Situação</th><th>Admissão</th><th></th></tr></thead>
         <tbody>${lista.map((f) => `<tr>
           <td>${f.id}</td><td>${esc(f.nome)}</td><td>${esc(f.cargo)}</td><td>${esc(f.departamento)}</td><td>${etiqueta(f.situacao)}</td><td>${dataBR(f.admissao)}</td>
-          ${servico.podeEditar ? `<td><div class="acoes-linha"><button class="mini" data-editar="${f.id}">Editar</button><button class="mini perigo" data-excluir="${f.id}">Excluir</button></div></td>` : ""}
+          <td><div class="acoes-linha"><button class="mini" data-ficha="${f.id}">Consultar ficha</button>${servico.podeEditar ? `<button class="mini" data-editar="${f.id}">Editar</button>${f.situacao !== "Inativo" ? `<button class="mini" data-inativar="${f.id}">Inativar</button>` : ""}<button class="mini perigo" data-excluir="${f.id}">Excluir</button>` : ""}</div></td>
         </tr>`).join("") || `<tr><td colspan="7" class="vazio">Nenhum funcionário encontrado.</td></tr>`}</tbody>
       </table></div>`;
   },
@@ -390,11 +400,32 @@ function formFuncionario(f) {
   f = f || { id: 0, nome: "", cargo: "", departamento: "Pessoas", situacao: "Ativo", admissao: HOJE };
   abrirJanela(novo ? "Novo funcionário" : `Editar funcionário · matrícula ${f.id}`, [
     { nome: "nome", rotulo: "Nome", valor: f.nome, max: 120 },
-    { nome: "cargo", rotulo: "Cargo", valor: f.cargo, max: 120 },
+    { nome: "cargo", rotulo: "Cargo", valor: f.cargo, max: 120, sugestoes: servico.cargosCadastrados() }, // sugestão de cargos (Jefferson)
     { nome: "departamento", rotulo: "Departamento", tipo: "select", opcoes: Opcoes.departamentos, valor: f.departamento },
     { nome: "situacao", rotulo: "Situação", tipo: "select", opcoes: Opcoes.situacoesFuncionario, valor: f.situacao },
     { nome: "admissao", rotulo: "Data de admissão", tipo: "date", valor: f.admissao },
   ], (v) => servico.salvarFuncionario({ id: f.id, ...v }));
+}
+
+// Ficha do funcionário (parte do Jefferson)
+function abrirFicha(id) {
+  const ficha = servico.consultarFicha(id, HOJE);
+  const f = ficha.funcionario;
+  const p = ficha.ultimoPonto;
+  const salario = !ficha.salarioVisivel ? "Sem acesso aos salários neste perfil"
+    : ficha.ultimaFolha ? `${dinheiro(ficha.ultimaFolha.base + ficha.ultimaFolha.bonus - ficha.ultimaFolha.desconto)} líquido (${mesPorExtenso(ficha.ultimaFolha.competencia)})`
+    : "Nenhum lançamento nos últimos 12 meses";
+  const linhas = [
+    ["Matrícula", f.id], ["Cargo", f.cargo], ["Departamento", f.departamento], ["Situação", f.situacao],
+    ["Admissão", dataBR(f.admissao)], ["Tempo de casa", ficha.tempoDeCasa],
+    [`Ponto de ${MESES[Number(HOJE.slice(5, 7)) - 1]}`, `${ficha.presencas} presença(s) · ${ficha.atrasos} atraso(s) · ${ficha.faltas} falta(s)`],
+    ["Último ponto", p ? `${dataBR(p.dia)} · ${p.situacao}${p.entrada ? ` · ${p.entrada} às ${p.saida}` : ""}` : "Nenhum registro"],
+    ["Último salário", salario],
+  ];
+  abrirJanela(`Ficha · ${f.nome}`, [{ tipo: "html", html:
+    `<table class="ficha">${linhas.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</table>` }],
+    () => {}, "Fechar");
+  $("janela-cancelar").hidden = true;
 }
 
 function formPonto(registro) {
@@ -486,6 +517,16 @@ const LIGACOES = {
       campo.setSelectionRange(pos, pos);
     });
     ao("#novo-funcionario", "click", () => formFuncionario(null));
+    ao("#filtro-dep", "change", (e) => { estado.filtroDep = e.target.value; desenhar(); });
+    ao("#filtro-sit", "change", (e) => { estado.filtroSit = e.target.value; desenhar(); });
+    ao("[data-ficha]", "click", (e) => abrirFicha(Number(e.target.dataset.ficha)));
+    // duplo clique: quem edita abre a edição; o Gestor abre a ficha
+    ao("#area tbody tr", "dblclick", (e) => e.currentTarget.querySelector(servico.podeEditar ? "[data-editar]" : "[data-ficha]")?.click());
+    ao("[data-inativar]", "click", (e) => {
+      const f = servico.funcionarios.find((x) => x.id === Number(e.target.dataset.inativar));
+      abrirJanela("Inativar funcionário?", [{ tipo: "aviso", texto: `${f.nome} passa para a situação Inativo. O histórico de ponto e salário continua guardado.` }],
+        () => { servico.mudarSituacao(f.id, "Inativo"); aviso("Funcionário inativado."); }, "Inativar");
+    });
     ao("[data-editar]", "click", (e) => formFuncionario(servico.funcionarios.find((f) => f.id === Number(e.target.dataset.editar))));
     ao("[data-excluir]", "click", (e) => {
       const f = servico.funcionarios.find((x) => x.id === Number(e.target.dataset.excluir));

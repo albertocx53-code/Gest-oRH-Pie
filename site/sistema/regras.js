@@ -287,3 +287,54 @@ Servico.prototype.lancarAtraso = function (matricula, dia, entrada, saida, motiv
     throw new ErroRegra(`Para lançar atraso, a entrada deve ser depois das ${Frequencia.horarioPadrao}.`);
   this.salvarPonto({ pessoa: matricula, dia, entrada, saida, situacao: "Atraso", motivo }, false);
 };
+
+// ---------- cadastro de funcionários (CadastroDeFuncionarios.cs, parte do Jefferson) ----------
+function tempoDeCasa(admissao, referencia) {
+  if (admissao > referencia) return "Admissão futura";
+  const [aa, am, ad] = admissao.split("-").map(Number);
+  const [ra, rm, rd] = referencia.split("-").map(Number);
+  let meses = (ra - aa) * 12 + rm - am;
+  if (rd < ad) meses--; // o mês só conta quando o dia da admissão já chegou
+  const anos = Math.floor(meses / 12);
+  meses %= 12;
+  if (anos === 0 && meses === 0) return "Menos de 1 mês";
+  const partes = [];
+  if (anos > 0) partes.push(anos === 1 ? "1 ano" : `${anos} anos`);
+  if (meses > 0) partes.push(meses === 1 ? "1 mês" : `${meses} meses`);
+  return partes.join(" e ");
+}
+
+Servico.prototype.consultarFicha = function (matricula, referencia) {
+  const funcionario = this.funcionarios.find((f) => f.id === matricula);
+  exigir(funcionario, "Funcionário não encontrado.");
+  const inicio = referencia.slice(0, 8) + "01";
+  const [a, m] = [Number(referencia.slice(0, 4)), Number(referencia.slice(5, 7))];
+  const fim = `${referencia.slice(0, 8)}${String(new Date(a, m, 0).getDate()).padStart(2, "0")}`;
+  const doMes = this.pontosEntre(inicio, fim).filter((p) => p.pessoa === matricula);
+  const ultimoPonto = this.pontosEntre("1900-01-01", referencia).filter((p) => p.pessoa === matricula).pop() || null;
+  // o salário só é procurado quando o perfil pode ver a folha; volta até 12 meses
+  let ultimaFolha = null;
+  if (this.podeVerSalarios) {
+    for (let i = 0; i < 12 && !ultimaFolha; i++) {
+      const d = new Date(a, m - 1 - i, 1);
+      const mes = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+      ultimaFolha = this.folhaDoMes(mes).find((f) => f.pessoa === matricula) || null;
+    }
+  }
+  const conta = (s) => doMes.filter((p) => p.situacao === s).length;
+  return { funcionario, tempoDeCasa: tempoDeCasa(funcionario.admissao, referencia), presencas: conta("Presença"),
+    atrasos: conta("Atraso"), faltas: conta("Falta"), ultimoPonto, salarioVisivel: this.podeVerSalarios, ultimaFolha };
+};
+
+Servico.prototype.cargosCadastrados = function () {
+  const vistos = new Map();
+  this.funcionarios.forEach((f) => { const c = f.cargo.trim(); if (c && !vistos.has(c.toLowerCase())) vistos.set(c.toLowerCase(), c); });
+  return [...vistos.values()].sort((x, y) => x.localeCompare(y, "pt-BR"));
+};
+
+Servico.prototype.mudarSituacao = function (matricula, novaSituacao) {
+  const atual = this.funcionarios.find((f) => f.id === matricula);
+  exigir(atual, "Funcionário não encontrado.");
+  exigir(atual.situacao !== novaSituacao, `O cadastro já está com a situação ${novaSituacao}.`);
+  this.salvarFuncionario({ ...atual, situacao: novaSituacao });
+};

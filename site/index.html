@@ -86,11 +86,11 @@ section.soft .area{background:#fff}
 @media(max-width:900px){.duo{grid-template-columns:1fr}}
 .diag{background:#fff;border-radius:18px;padding:16px;border:1px solid #eee}
 .lista{display:flex;flex-direction:column;gap:14px}
-.lista .area{background:#fff}
+.lista .area{background:var(--bgsoft)}
 
 /* código */
 .tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:36px}
-.tabs button{font-family:"Montserrat",sans-serif;font-weight:700;font-size:15px;border:0;border-radius:12px;padding:10px 18px;background:var(--bgsoft);color:var(--ink);cursor:pointer}
+.tabs button{font-family:"Montserrat",sans-serif;font-weight:700;font-size:15px;border:0;border-radius:12px;padding:10px 18px;background:#fff;color:var(--ink);cursor:pointer}
 .tabs button.on{background:var(--ink);color:#fff}
 .code-box{margin-top:20px;display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:start}
 @media(max-width:900px){.code-box{grid-template-columns:1fr}}
@@ -110,7 +110,7 @@ section.soft .area{background:#fff}
 
 /* rodar */
 ol.passos{counter-reset:p;list-style:none;padding:0;margin:36px 0 0;display:grid;gap:14px;max-width:760px}
-ol.passos li{counter-increment:p;background:#fff;border-radius:16px;padding:18px 22px 18px 70px;position:relative}
+ol.passos li{counter-increment:p;background:var(--bgsoft);border-radius:16px;padding:18px 22px 18px 70px;position:relative}
 ol.passos li::before{content:counter(p);position:absolute;left:20px;top:16px;width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;font-family:"Montserrat",sans-serif;font-weight:800;display:flex;align-items:center;justify-content:center}
 code.inline{font-family:"JetBrains Mono",monospace;font-size:15px;background:var(--bgsoft);padding:2px 8px;border-radius:6px}
 ol.passos code.inline{background:var(--bgsoft)}
@@ -145,6 +145,7 @@ footer a{color:#fff}
       <li><a href="#sistema">Sistema</a></li>
       <li><a href="#telas">Telas</a></li>
       <li><a href="#equipe">Equipe</a></li>
+      <li><a href="#cadastro">Cadastro</a></li>
       <li><a href="#frequencia">Frequência</a></li>
       <li><a href="#banco">Banco</a></li>
       <li><a href="#codigo">Código</a></li>
@@ -178,7 +179,7 @@ footer a{color:#fff}
     <h2>Tudo o que o RH faz, num lugar só</h2>
     <p class="lead">Um programa de computador para Windows, feito em C# com Windows Forms. Cada pessoa entra com o próprio login e vê só o que o perfil dela permite.</p>
     <div class="grid3">
-      <div class="area"><h3>Funcionários</h3><p>Cadastro, cargo, departamento e situação</p></div>
+      <div class="area"><h3>Funcionários</h3><p>Cadastro com ficha do funcionário, inativação e sugestão de cargos</p></div>
       <div class="area l-green"><h3>Ponto e frequência</h3><p>Entrada, saída, falta e atraso, com motivo, e frequência de qualquer período</p></div>
       <div class="area l-orange"><h3>Recrutamento</h3><p>Vagas abertas e etapa de cada candidato</p></div>
       <div class="area l-purple"><h3>Agenda</h3><p>Compromissos do RH por dia</p></div>
@@ -223,7 +224,25 @@ footer a{color:#fff}
   </div>
 </section>
 
-<section id="frequencia" class="soft">
+<section id="cadastro" class="soft">
+  <div class="wrap">
+    <span class="tab t-purple">Cadastro de funcionários</span>
+    <h2>Ficha do funcionário e inativação</h2>
+    <p class="lead">Parte do Jefferson. A tela de funcionários ganhou a matrícula na tabela, a ficha completa de cada pessoa, o botão Inativar e a sugestão de cargos no cadastro.</p>
+    <div class="grid3">
+      <div class="area l-purple"><h3>Consultar ficha</h3><p>Cadastro, tempo de casa, ponto do mês, último ponto e último salário.</p></div>
+      <div class="area l-orange"><h3>Inativar</h3><p>Quem tem histórico não pode ser excluído; vira Inativo e o histórico fica.</p></div>
+      <div class="area l-teal"><h3>Sugestão de cargos</h3><p>O campo Cargo sugere os cargos que já existem enquanto a pessoa digita.</p></div>
+    </div>
+    <div class="perfis"><b>Gestor:</b><span class="chip">consulta a ficha, mas não vê salário nem inativa</span></div>
+    <div class="telas" style="grid-template-columns:1fr 1fr">
+      <figure class="shot a" style="margin:0"><div class="frame"><img src="img/telas/jef_ficha.png" alt="Ficha do funcionário na versão web"></div><figcaption>Ficha do funcionário</figcaption></figure>
+      <figure class="shot b" style="margin:0"><div class="frame"><img src="img/telas/jef_lista.png" alt="Lista de funcionários com filtros e botões"></div><figcaption>Lista com filtros, ficha e Inativar</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="frequencia">
   <div class="wrap">
     <span class="tab t-pink">Ponto e frequência</span>
     <h2>Faltas, atrasos e frequência por período</h2>
@@ -241,7 +260,7 @@ footer a{color:#fff}
   </div>
 </section>
 
-<section id="salarios">
+<section id="salarios" class="soft">
   <div class="wrap">
     <span class="tab" style="background:var(--red)">Salários</span>
     <h2>Editar um lançamento da folha</h2>
@@ -258,7 +277,7 @@ footer a{color:#fff}
   </div>
 </section>
 
-<section id="banco" class="soft">
+<section id="banco">
   <div class="wrap">
     <span class="tab t-green">Banco de dados</span>
     <h2>Como os dados se ligam</h2>
@@ -275,7 +294,7 @@ footer a{color:#fff}
   </div>
 </section>
 
-<section id="codigo">
+<section id="codigo" class="soft">
   <div class="wrap">
     <span class="tab t-purple">Código</span>
     <h2>Trechos do código</h2>
@@ -285,9 +304,10 @@ footer a{color:#fff}
       <button data-i="1">Permissões</button>
       <button data-i="2">Tabela de ponto</button>
       <button data-i="3">Gravando no banco</button>
-      <button data-i="4">Lançar atraso</button>
-      <button data-i="5">Editar salário</button>
-      <button data-i="6">Interface (POO)</button>
+      <button data-i="4">Cadastro (ficha e inativar)</button>
+      <button data-i="5">Lançar atraso</button>
+      <button data-i="6">Editar salário</button>
+      <button data-i="7">Interface (POO)</button>
     </div>
     <div class="code-box">
       <div><img id="code-img" src="img/code_login.png" alt="Código do método SignIn"><p class="dica-zoom">Clique no código para ampliar</p></div>
@@ -296,7 +316,7 @@ footer a{color:#fff}
   </div>
 </section>
 
-<section class="soft">
+<section>
   <div class="wrap">
     <span class="tab t-purple">A matéria no projeto</span>
     <h2>Onde entra a POO</h2>
@@ -352,6 +372,8 @@ const trechos = [
    l:["Chave dupla (matrícula + dia): um ponto por pessoa por dia","CHECK só aceita Presença, Atraso ou Falta","ON DELETE RESTRICT protege o histórico"]},
   {img:"img/code_repositorio.png", alt:"Código C# que grava o ponto no banco", t:"Gravando no banco", w:"Alberto · RepositorioSqlite.cs",
    l:["Valores vão por parâmetro, o que protege contra SQL Injection","Entrada e saída vazias viram NULL na falta","Se o banco recusar, aparece uma mensagem clara na tela"]},
+  {img:"img/code_cadastro.png", alt:"Código da ficha e do MudarSituacao em CadastroDeFuncionarios.cs", t:"Ficha e Inativar", w:"Jefferson · CadastroDeFuncionarios.cs",
+   l:["O salário só é buscado se o perfil pode ver a folha","Inativar troca só a situação e mantém o histórico","As regras de perfil vêm do SaveEmployee do RhService"]},
   {img:"img/code_frequencia.png", alt:"Código do método LancarAtraso em FrequenciaDePonto.cs", t:"Lançar atraso", w:"Clóvis · FrequenciaDePonto.cs",
    l:["Método de extensão: o RhService não precisou mudar","Só aceita entrada depois das 08:00","As outras regras vêm do SaveAttendance do RhService"]},
   {img:"img/code_salarios.png", alt:"Código do botão Editar lançamento em AuroraForm.Modules.cs", t:"Editar lançamento", w:"Cleberson Dias · AuroraForm.Modules.cs",
