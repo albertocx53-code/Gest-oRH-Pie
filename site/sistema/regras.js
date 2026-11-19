@@ -338,3 +338,69 @@ Servico.prototype.mudarSituacao = function (matricula, novaSituacao) {
   exigir(atual.situacao !== novaSituacao, `O cadastro já está com a situação ${novaSituacao}.`);
   this.salvarFuncionario({ ...atual, situacao: novaSituacao });
 };
+
+// ---------- recrutamento (Recrutamento.cs, parte do Kerlon) ----------
+const SituacoesDeVaga = ["Aberta", "Encerrada"];
+const indiceDaEtapa = (etapa) => { const i = Opcoes.etapas.indexOf(etapa); return i < 0 ? Infinity : i; };
+
+Servico.prototype.consultarVagas = function (situacao = null, departamento = null) {
+  exigir(situacao === null || SituacoesDeVaga.includes(situacao), "Selecione uma situação de vaga válida.");
+  exigir(departamento === null || Opcoes.departamentos.includes(departamento), "Selecione um departamento válido.");
+  return this.vagas
+    .filter((v) => (situacao === null || v.situacao === situacao) && (departamento === null || v.departamento === departamento))
+    .sort((a, b) => (a.situacao === "Aberta" ? 0 : 1) - (b.situacao === "Aberta" ? 0 : 1)
+      || a.titulo.localeCompare(b.titulo, "pt-BR") || a.id - b.id);
+};
+
+Servico.prototype.encontrarVaga = function (id) {
+  const vaga = this.vagas.find((v) => v.id === id);
+  exigir(vaga, "Vaga não encontrada.");
+  return vaga;
+};
+
+Servico.prototype.encontrarCandidato = function (id) {
+  const c = this.candidatos.find((x) => x.id === id);
+  exigir(c, "Candidatura não encontrada.");
+  return c;
+};
+
+Servico.prototype.candidatosDaVaga = function (vagaId, etapa = null) {
+  this.encontrarVaga(vagaId);
+  exigir(etapa === null || Opcoes.etapas.includes(etapa), "Selecione uma etapa válida.");
+  return this.candidatos
+    .filter((c) => c.vaga === vagaId && (etapa === null || c.etapa === etapa))
+    .sort((a, b) => indiceDaEtapa(a.etapa) - indiceDaEtapa(b.etapa) || a.nome.localeCompare(b.nome, "pt-BR") || a.id - b.id);
+};
+
+// Quantos candidatos há em cada etapa, na ordem do processo (etapas vazias aparecem com zero)
+Servico.prototype.funilDeEtapas = function (vagaId = null) {
+  if (vagaId !== null) this.encontrarVaga(vagaId);
+  const lista = this.candidatos.filter((c) => vagaId === null || c.vaga === vagaId);
+  return Opcoes.etapas.map((etapa) => ({ etapa, candidatos: lista.filter((c) => c.etapa === etapa).length }));
+};
+
+// O mesmo nome (sem diferenciar maiúsculas) não entra duas vezes na mesma vaga
+Servico.prototype.conferirDuplicidade = function (nome, vagaId, ignorar) {
+  const limpo = (nome || "").trim().toLocaleLowerCase("pt-BR");
+  exigir(!this.candidatos.some((c) => c.id !== ignorar && c.vaga === vagaId && c.nome.toLocaleLowerCase("pt-BR") === limpo),
+    "Este candidato já está inscrito nesta vaga.");
+};
+
+Servico.prototype.salvarCandidatura = function (c) {
+  if (this.podeEditar) this.conferirDuplicidade(c.nome, c.vaga, c.id);
+  this.salvarCandidato(c);
+};
+
+Servico.prototype.vincularAVaga = function (candidatoId, novaVagaId) {
+  const atual = this.encontrarCandidato(candidatoId);
+  exigir(atual.vaga !== novaVagaId, "O candidato já está nesta vaga.");
+  if (this.podeEditar) this.conferirDuplicidade(atual.nome, novaVagaId, candidatoId);
+  this.salvarCandidato({ ...atual, vaga: novaVagaId });
+};
+
+Servico.prototype.avancarEtapa = function (candidatoId) {
+  const atual = this.encontrarCandidato(candidatoId);
+  const i = indiceDaEtapa(atual.etapa);
+  exigir(i < Opcoes.etapas.length - 1, "O candidato já está na última etapa do processo.");
+  this.salvarCandidato({ ...atual, etapa: Opcoes.etapas[i + 1] });
+};

@@ -14,7 +14,7 @@ Professor: Marcos Gomes da Silva Rocha
 | Clóvis | Ponto e frequência (lançar falta e atraso, consulta por período) |
 | Jefferson | Cadastro de funcionários (ficha do funcionário, inativar e sugestão de cargos) |
 | Paulo Victor | Interface |
-| Kerlon | [parte] |
+| Kerlon | Recrutamento (funil de etapas, candidatos por vaga, avançar etapa e mudar de vaga) |
 | Cleberson Dias | Salários (editar lançamento da folha) e testes da folha em memória e no banco |
 
 ## O que o sistema faz
@@ -22,7 +22,7 @@ Professor: Marcos Gomes da Silva Rocha
 - Login com três perfis: Administrador, Recursos Humanos e Gestor
 - Cadastro de funcionários, com ficha do funcionário, inativação e sugestão de cargos
 - Controle de ponto (presença, atraso e falta), com lançamento de falta e atraso e frequência por período
-- Recrutamento (vagas e candidatos)
+- Recrutamento (vagas e candidatos), com funil de etapas, filtro por vaga, avançar etapa e mudar de vaga
 - Agenda do RH
 - Folha de pagamento, com edição de lançamento
 - Painel com o resumo do dia
@@ -31,7 +31,7 @@ Professor: Marcos Gomes da Silva Rocha
 
 | Pasta | Conteúdo |
 | --- | --- |
-| `Aurora.Core` | Modelos, regras de negócio (`RhService`), login (`Authentication`), frequência do ponto (`FrequenciaDePonto`) e cadastro de funcionários (`CadastroDeFuncionarios`) |
+| `Aurora.Core` | Modelos, regras de negócio (`RhService`), login (`Authentication`), frequência do ponto (`FrequenciaDePonto`) cadastro de funcionários (`CadastroDeFuncionarios`) e recrutamento (`Recrutamento`) |
 | `Aurora.WinForms` | Telas do sistema |
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `BancoDeDados` | Scripts SQL, diagrama das tabelas e banco de exemplo |

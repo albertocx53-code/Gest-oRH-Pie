@@ -149,3 +149,13 @@ dialog h3{font-size:20px;margin-bottom:16px}
 .ficha{width:100%}
 .ficha th{text-transform:none;letter-spacing:0;font-size:13px;width:38%;padding:8px 10px 8px 0;border-bottom:1px solid rgba(53,61,81,.6)}
 .ficha td{padding:8px 0;font-size:14px}
+
+/* recrutamento (parte do Kerlon) */
+.vaga.escolhida{outline:2px solid var(--roxo)}
+.funil{margin-bottom:16px}
+.funil-linha{display:grid;grid-template-columns:110px minmax(0,1fr) 28px;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+.funil-barra{height:12px;border-radius:999px;background:var(--tom);overflow:hidden}
+.funil-barra i{display:block;height:100%;background:var(--roxo);border-radius:999px}
+.funil-linha b{text-align:right}
+.mini:disabled{opacity:.45;cursor:default}
+.vaga .acoes-linha{display:flex;gap:6px;flex-wrap:wrap}

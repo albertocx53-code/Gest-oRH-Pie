@@ -11,6 +11,7 @@ const estadoInicial = () => ({
   diaPonto: HOJE, mesFolha: HOJE.slice(0, 7), busca: "", filtroDep: "", filtroSit: "",
   modoPonto: "dia", // "dia" ou "periodo" (Consultar período, parte do Clóvis)
   periodo: { de: HOJE.slice(0, 8) + "01", ate: HOJE, pessoa: "", ocorrencia: "" },
+  vagaFiltrada: null, // Candidatos da vaga (parte do Kerlon); null = todas as vagas
 });
 let estado = estadoInicial();
 
@@ -330,25 +331,43 @@ const TELAS = {
   },
 
   recrutamento() {
-    const candidatos = servico.candidatos;
+    const todos = servico.candidatos;
+    // Kerlon: com uma vaga escolhida, a tabela e o funil mostram só os candidatos dela
+    if (estado.vagaFiltrada !== null && !servico.vagas.some((v) => v.id === estado.vagaFiltrada)) estado.vagaFiltrada = null;
+    const filtrada = estado.vagaFiltrada;
+    const candidatos = filtrada === null ? todos : servico.candidatosDaVaga(filtrada);
+    const funil = servico.funilDeEtapas(filtrada);
+    const maior = Math.max(1, ...funil.map((f) => f.candidatos));
+    const ultima = Opcoes.etapas[Opcoes.etapas.length - 1];
     return `
       <div class="barra-acoes">
         <h3 style="font-size:18px">Vagas</h3><span class="espaco"></span>
         ${servico.podeEditar ? `<button class="btn contorno" id="nova-vaga">Nova vaga</button><button class="btn primario" id="novo-candidato">Novo candidato</button>` : ""}
       </div>
-      <div class="vagas">${servico.vagas.map((v) => `
-        <div class="cartao vaga">
+      <div class="vagas">${servico.consultarVagas().map((v) => `
+        <div class="cartao vaga${filtrada === v.id ? " escolhida" : ""}">
           <div class="linha"><h3>${esc(v.titulo)}</h3>${etiqueta(v.situacao)}</div>
-          <p class="muted">${esc(v.departamento)} · ${candidatos.filter((c) => c.vaga === v.id).length} candidato(s)</p>
-          ${servico.podeEditar ? `<div><button class="mini" data-alternar="${v.id}">${v.situacao === "Aberta" ? "Encerrar vaga" : "Reabrir vaga"}</button></div>` : ""}
+          <p class="muted">${esc(v.departamento)} · ${todos.filter((c) => c.vaga === v.id).length} candidato(s) · ${todos.filter((c) => c.vaga === v.id && c.etapa === ultima).length} contratado(s)</p>
+          <div class="acoes-linha">
+            <button class="mini" data-filtrar-vaga="${v.id}">${filtrada === v.id ? "Ver todos" : "Candidatos da vaga"}</button>
+            ${servico.podeEditar ? `<button class="mini" data-alternar="${v.id}">${v.situacao === "Aberta" ? "Encerrar vaga" : "Reabrir vaga"}</button>` : ""}
+          </div>
         </div>`).join("")}
       </div>
-      <div class="cartao tabela-rolagem"><h3>Candidatos</h3><table>
+      <div class="cartao funil">
+        <h3>Funil do processo seletivo · <span class="muted">${filtrada === null ? "todas as vagas" : esc(servico.tituloVaga(filtrada))}</span></h3>
+        ${funil.map((f) => `<div class="funil-linha"><span>${esc(f.etapa)}</span>
+          <div class="funil-barra"><i style="width:${(f.candidatos / maior) * 100}%"></i></div><b>${f.candidatos}</b></div>`).join("")}
+      </div>
+      <div class="cartao tabela-rolagem"><h3>Candidatos${filtrada === null ? "" : ` de ${esc(servico.tituloVaga(filtrada))}`}</h3><table>
         <thead><tr><th>Nome</th><th>Vaga</th><th>Etapa</th>${servico.podeEditar ? "<th></th>" : ""}</tr></thead>
         <tbody>${candidatos.map((c) => `<tr>
           <td>${esc(c.nome)}</td><td>${esc(servico.tituloVaga(c.vaga))}</td><td>${etiqueta(c.etapa)}</td>
-          ${servico.podeEditar ? `<td><div class="acoes-linha"><button class="mini" data-editar-candidato="${c.id}">Editar</button></div></td>` : ""}
-        </tr>`).join("") || `<tr><td colspan="4" class="vazio">Nenhum candidato ainda.</td></tr>`}</tbody>
+          ${servico.podeEditar ? `<td><div class="acoes-linha">
+            <button class="mini" data-avancar="${c.id}"${c.etapa === ultima ? " disabled" : ""}>Avançar etapa</button>
+            <button class="mini" data-mudar-vaga="${c.id}">Mudar de vaga</button>
+            <button class="mini" data-editar-candidato="${c.id}">Editar</button></div></td>` : ""}
+        </tr>`).join("") || `<tr><td colspan="4" class="vazio">Nenhum candidato ${filtrada === null ? "ainda" : "nesta vaga"}.</td></tr>`}</tbody>
       </table></div>`;
   },
 
@@ -479,7 +498,16 @@ function formCandidato(c) {
     { nome: "nome", rotulo: "Nome do candidato", valor: c.nome, max: 120 },
     { nome: "vaga", rotulo: "Vaga", tipo: "select", opcoes: vagas.map((v) => [v.id, v.titulo]), valor: c.vaga },
     { nome: "etapa", rotulo: "Etapa", tipo: "select", opcoes: Opcoes.etapas, valor: c.etapa },
-  ], (v) => servico.salvarCandidato({ id: c.id, nome: v.nome, vaga: Number(v.vaga), etapa: v.etapa }));
+  ], (v) => servico.salvarCandidatura({ id: c.id, nome: v.nome, vaga: Number(v.vaga), etapa: v.etapa }));
+}
+
+// Mudar de vaga (parte do Kerlon): só aparecem as outras vagas abertas; a etapa continua a mesma
+function formMudarVaga(c) {
+  const abertas = servico.consultarVagas("Aberta").filter((v) => v.id !== c.vaga);
+  if (abertas.length === 0) { aviso("Não há outra vaga aberta", true); return; }
+  abrirJanela(`Mudar de vaga · ${c.nome}`, [
+    { nome: "vaga", rotulo: `Nova vaga (hoje em ${servico.tituloVaga(c.vaga)}, etapa ${c.etapa})`, tipo: "select", opcoes: abertas.map((v) => [v.id, v.titulo]) },
+  ], (v) => servico.vincularAVaga(c.id, Number(v.vaga)));
 }
 
 // Novo lançamento ou edição (a edição é a parte do Cleberson Dias)
@@ -559,6 +587,18 @@ const LIGACOES = {
       catch (erro) { if (erro instanceof ErroRegra) aviso(erro.message, true); else throw erro; }
     });
     ao("[data-editar-candidato]", "click", (e) => formCandidato(servico.candidatos.find((c) => c.id === Number(e.target.dataset.editarCandidato))));
+    // Parte do Kerlon: filtro por vaga, Avançar etapa e Mudar de vaga
+    ao("[data-filtrar-vaga]", "click", (e) => {
+      const id = Number(e.target.dataset.filtrarVaga);
+      estado.vagaFiltrada = estado.vagaFiltrada === id ? null : id;
+      desenhar();
+    });
+    ao("[data-avancar]", "click", (e) => {
+      const c = servico.candidatos.find((x) => x.id === Number(e.target.dataset.avancar));
+      try { servico.avancarEtapa(c.id); desenhar(); aviso(`${c.nome} avançou de etapa`); }
+      catch (erro) { if (erro instanceof ErroRegra) aviso(erro.message, true); else throw erro; }
+    });
+    ao("[data-mudar-vaga]", "click", (e) => formMudarVaga(servico.candidatos.find((x) => x.id === Number(e.target.dataset.mudarVaga))));
   },
   agenda() {
     ao("#novo-compromisso", "click", () => abrirJanela("Novo compromisso", [

@@ -21,7 +21,7 @@ a{color:var(--blue)}
 img{max-width:100%;display:block}
 .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
 .tab{display:inline-block;font-family:"Montserrat",sans-serif;font-weight:700;font-size:14px;color:#fff;padding:6px 16px;border-radius:999px;margin-bottom:14px}
-.t-orange{background:var(--orange)}.t-blue{background:var(--blue)}.t-green{background:var(--green)}.t-purple{background:var(--purple)}.t-pink{background:var(--pink)}
+.t-orange{background:var(--orange)}.t-blue{background:var(--blue)}.t-green{background:var(--green)}.t-purple{background:var(--purple)}.t-pink{background:var(--pink)}.t-teal{background:var(--teal)}
 section{padding:80px 0}
 section.soft{background:var(--bgsoft)}
 .lead{font-size:20px;color:var(--soft);max-width:720px;margin-top:14px}
@@ -29,10 +29,12 @@ section.soft{background:var(--bgsoft)}
 /* topo */
 nav{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);border-bottom:1px solid #eee}
 nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
-nav .logo{font-family:"Montserrat",sans-serif;font-weight:800;font-size:20px;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:10px}
+nav .logo{white-space:nowrap;flex-shrink:0;font-family:"Montserrat",sans-serif;font-weight:800;font-size:20px;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:10px}
 nav .logo span{display:inline-block;width:22px;height:22px;border-radius:7px;background:var(--orange);box-shadow:8px 8px 0 -2px var(--blue)}
-nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0}
-nav ul a{color:var(--ink);text-decoration:none;font-weight:700;font-size:16px}
+nav ul{display:flex;gap:18px;list-style:none;margin:0;padding:0}
+nav ul a{color:var(--ink);text-decoration:none;font-weight:700;font-size:15px;white-space:nowrap}
+nav .wrap > a:last-child, nav .wrap > .btn{white-space:nowrap}
+@media(max-width:1280px){nav ul li.extra{display:none}}
 nav ul a:hover{color:var(--orange)}
 @media(max-width:820px){nav ul{display:none}}
 
@@ -143,13 +145,14 @@ footer a{color:#fff}
     <a class="logo" href="#topo"><span></span>Gestão de RH</a>
     <ul>
       <li><a href="#sistema">Sistema</a></li>
-      <li><a href="#telas">Telas</a></li>
+      <li class="extra"><a href="#telas">Telas</a></li>
       <li><a href="#equipe">Equipe</a></li>
       <li><a href="#cadastro">Cadastro</a></li>
       <li><a href="#frequencia">Frequência</a></li>
+      <li><a href="#recrutamento">Recrutamento</a></li>
       <li><a href="#banco">Banco</a></li>
       <li><a href="#codigo">Código</a></li>
-      <li><a href="#rodar">Como rodar</a></li>
+      <li class="extra"><a href="#rodar">Como rodar</a></li>
       <li><a href="sistema/" style="color:var(--orange)">Abrir o sistema</a></li>
     </ul>
   </div>
@@ -218,7 +221,7 @@ footer a{color:#fff}
       <div class="mb b-orange"><span class="ini">PV</span><h3>Paulo Victor</h3><p>Interface</p></div>
       <div class="mb b-purple"><span class="ini">JE</span><h3>Jefferson</h3><p>Cadastro de funcionários</p></div>
       <div class="mb b-pink"><span class="ini">CL</span><h3>Clóvis</h3><p>Ponto e frequência</p></div>
-      <div class="mb b-teal"><span class="ini">KE</span><h3>Kerlon</h3></div>
+      <div class="mb b-teal"><span class="ini">KE</span><h3>Kerlon</h3><p>Recrutamento</p></div>
       <div class="mb b-red"><span class="ini">CD</span><h3>Cleberson Dias</h3><p>Salários</p></div>
     </div>
   </div>
@@ -260,7 +263,25 @@ footer a{color:#fff}
   </div>
 </section>
 
-<section id="salarios" class="soft">
+<section id="recrutamento" class="soft">
+  <div class="wrap">
+    <span class="tab t-teal">Recrutamento</span>
+    <h2>Funil de etapas, avançar e mudar de vaga</h2>
+    <p class="lead">Parte do Kerlon. A tela de Recrutamento ganhou o funil do processo seletivo, o filtro de candidatos por vaga e dois botões novos para cada candidatura: Avançar etapa e Mudar de vaga.</p>
+    <div class="grid3">
+      <div class="area l-teal"><h3>Funil de etapas</h3><p>Quantos candidatos há em Triagem, Entrevista, Teste técnico, Proposta e Contratado, de todas as vagas ou de uma só.</p></div>
+      <div class="area l-orange"><h3>Avançar e mudar de vaga</h3><p>Leva a candidatura para a próxima etapa ou para outra vaga aberta, mantendo a etapa.</p></div>
+      <div class="area l-purple"><h3>Sem candidato repetido</h3><p>O mesmo nome não entra duas vezes na mesma vaga, nem no cadastro nem na edição.</p></div>
+    </div>
+    <div class="perfis"><b>Quem pode:</b><span class="chip">Administrador e RH alteram</span><span class="chip">Gestor só consulta</span></div>
+    <div class="telas" style="grid-template-columns:1fr 1fr">
+      <figure class="shot a" style="margin:0"><div class="frame"><img src="img/telas/ker_recrutamento.png" alt="Tela de Recrutamento com o funil e o filtro por vaga"></div><figcaption>Funil e candidatos da vaga</figcaption></figure>
+      <figure class="shot b" style="margin:0"><div class="frame"><img src="img/telas/ker_mudar.png" alt="Janela Mudar de vaga da versão web"></div><figcaption>Mudar de vaga</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="salarios">
   <div class="wrap">
     <span class="tab" style="background:var(--red)">Salários</span>
     <h2>Editar um lançamento da folha</h2>
@@ -307,7 +328,8 @@ footer a{color:#fff}
       <button data-i="4">Cadastro (ficha e inativar)</button>
       <button data-i="5">Lançar atraso</button>
       <button data-i="6">Editar salário</button>
-      <button data-i="7">Interface (POO)</button>
+      <button data-i="7">Avançar etapa</button>
+      <button data-i="8">Interface (POO)</button>
     </div>
     <div class="code-box">
       <div><img id="code-img" src="img/code_login.png" alt="Código do método SignIn"><p class="dica-zoom">Clique no código para ampliar</p></div>
@@ -378,6 +400,8 @@ const trechos = [
    l:["Método de extensão: o RhService não precisou mudar","Só aceita entrada depois das 08:00","As outras regras vêm do SaveAttendance do RhService"]},
   {img:"img/code_salarios.png", alt:"Código do botão Editar lançamento em AuroraForm.Modules.cs", t:"Editar lançamento", w:"Cleberson Dias · AuroraForm.Modules.cs",
    l:["O mesmo formulário serve para novo lançamento e para edição","Na edição, funcionário e competência ficam travados","Duplo clique na linha também abre a edição"]},
+  {img:"img/code_recrutamento.png", alt:"Código do AvancarEtapa e da conferência de duplicidade em Recrutamento.cs", t:"Avançar etapa", w:"Kerlon · Recrutamento.cs",
+   l:["A etapa seguinte vem da lista RhOptions.Stages","Quem já foi contratado não tem etapa seguinte","O mesmo nome não entra duas vezes na mesma vaga"]},
   {img:"img/code_interface.png", alt:"Código da interface IRhRepository", t:"Interface IRhRepository", w:"Equipe · IRhRepository.cs",
    l:["Define o que o repositório precisa fazer","DemoRh guarda na memória, RepositorioSqlite guarda no banco","As telas funcionam com qualquer um dos dois"]}
 ];
