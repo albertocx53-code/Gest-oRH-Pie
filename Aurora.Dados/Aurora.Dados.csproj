@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Projeto da camada de acesso aos dados (parte do Alberto) -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Biblioteca da Microsoft para acessar o SQLite.
+         O Visual Studio baixa automaticamente do NuGet. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Usa os modelos e a interface IRhRepository do projeto Core -->
+    <ProjectReference Include="../Aurora.Core/Aurora.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Copia os scripts .sql da pasta BancoDeDados para a pasta do executável,
+         de onde o CriadorDoBanco lê na primeira execução. -->
+    <None Include="../BancoDeDados/*.sql" Link="BancoDeDados/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
