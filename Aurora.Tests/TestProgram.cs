@@ -23,6 +23,7 @@ internal static class TestProgram
             TesteDoBanco.Rodar(); // testes do banco SQLite (Alberto)
             TesteDoPonto.Rodar(); // testes do ponto e frequência (Clóvis)
             TesteSalarios.Rodar(); // folha de pagamento em memória e no banco (Diaz)
+            TesteDosFuncionarios.Rodar(); // testes do cadastro de funcionários (Jefferson)
             CheckWindows();
             Console.WriteLine("Serviços e fluxos do Windows Forms aprovados.");
             return 0;
@@ -121,6 +122,15 @@ internal static class TestProgram
                         Click(main, "Funcionários");
                         Check(!Button(main, "Novo funcionário").Enabled, "edição indisponível para gestor");
                         Check(Grid(main, "Cadastro de funcionários").Rows.Cast<DataGridViewRow>().Any(row => Equals(row.Cells[0].Value, "Rita Teste")), "troca de conta mantém dados da execução");
+                        // Parte do Jefferson: o gestor consulta a ficha, mas não vê salário nem pode inativar.
+                        Check(!Button(main, "Inativar").Enabled, "inativar indisponível para gestor");
+                        var lista = Grid(main, "Cadastro de funcionários");
+                        lista.CurrentCell = lista.Rows[0].Cells[0];
+                        Dialog(main, "Consultar ficha", "Ficha do funcionário", modal =>
+                        {
+                            Check(Descendants(modal).OfType<Label>().Any(item => item.AccessibleName == "Salário" && item.Text == "Sem acesso aos salários neste perfil"), "ficha do gestor sem salário");
+                            Click(modal, "Fechar");
+                        });
                         main.Close();
                     }
                     step++;
@@ -150,9 +160,18 @@ internal static class TestProgram
             Check(modal.Visible, "cadastro em branco apresenta erro");
             Input<TextBox>(modal, "Nome").Text = "Rita Teste";
             Input<TextBox>(modal, "Cargo").Text = "Analista de RH";
+            Check(Input<TextBox>(modal, "Cargo").AutoCompleteCustomSource.Contains("Analista de RH"), "cargo sugere os cargos já cadastrados"); // Parte do Jefferson
             Click(modal, "Confirmar");
         });
         Check(Grid(main, "Cadastro de funcionários").RowCount == 9, "cadastro entrou na tabela");
+        // Parte do Jefferson: a ficha mostra a matrícula gerada no cadastro da Rita (109).
+        var cadastro = Grid(main, "Cadastro de funcionários");
+        cadastro.CurrentCell = cadastro.Rows.Cast<DataGridViewRow>().Single(row => Equals(row.Cells[0].Value, "Rita Teste")).Cells[0];
+        Dialog(main, "Consultar ficha", "Ficha do funcionário", modal =>
+        {
+            Check(Descendants(modal).OfType<Label>().Any(item => item.AccessibleName == "Matrícula" && item.Text == "109"), "ficha mostra a matrícula gerada");
+            Click(modal, "Fechar");
+        });
         Click(main, "Ponto e frequência");
         Dialog(main, "Registrar ponto", "Registrar ponto", modal =>
         {
