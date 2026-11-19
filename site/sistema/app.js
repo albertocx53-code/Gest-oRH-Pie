@@ -451,20 +451,28 @@ function formCandidato(c) {
   ], (v) => servico.salvarCandidato({ id: c.id, nome: v.nome, vaga: Number(v.vaga), etapa: v.etapa }));
 }
 
+// Novo lançamento ou edição (a edição é a parte do Cleberson Dias)
 function formFolha(f) {
   const funcionarios = servico.funcionarios;
+  const edicao = !!f;
   f = f || { pessoa: funcionarios[0]?.id, competencia: estado.mesFolha + "-01", base: "", bonus: 0, desconto: 0 };
   const brl = (v) => (v === "" ? "" : Number(v).toFixed(2).replace(".", ","));
-  abrirJanela("Lançar salário", [
+  abrirJanela(edicao ? "Editar lançamento" : "Lançar salário", [
     { nome: "pessoa", rotulo: "Funcionário", tipo: "select", opcoes: funcionarios.map((x) => [x.id, x.nome]), valor: f.pessoa },
     { nome: "competencia", rotulo: "Competência", tipo: "month", valor: f.competencia.slice(0, 7) },
     { nome: "base", rotulo: "Salário base (R$)", valor: brl(f.base), dica: "Ex.: 3.500,00" },
     { nome: "bonus", rotulo: "Bônus (R$)", valor: brl(f.bonus) },
     { nome: "desconto", rotulo: "Desconto (R$)", valor: brl(f.desconto) },
+    { tipo: "aviso", texto: edicao
+      ? "Funcionário e competência não mudam na edição. Altere os valores e confirme."
+      : "Um lançamento por funcionário e competência. Salvar de novo atualiza o valor existente." },
   ], (v) => {
     servico.salvarFolha({ pessoa: Number(v.pessoa), competencia: (v.competencia || "") + "-01", base: lerValor(v.base), bonus: lerValor(v.bonus), desconto: lerValor(v.desconto) });
     estado.mesFolha = v.competencia;
   });
+  // na edição, funcionário e competência são a chave do lançamento: ficam travados
+  $("form-janela").elements.pessoa.disabled = edicao;
+  $("form-janela").elements.competencia.disabled = edicao;
 }
 
 const LIGACOES = {
@@ -523,6 +531,7 @@ const LIGACOES = {
   salarios() {
     ao("#mes-folha", "change", (e) => { if (e.target.value) { estado.mesFolha = e.target.value; desenhar(); } });
     ao("#lancar-salario", "click", () => formFolha(null));
+    ao("#area tbody tr", "dblclick", (e) => e.currentTarget.querySelector("[data-editar-folha]")?.click());
     ao("[data-editar-folha]", "click", (e) => {
       const pessoa = Number(e.target.dataset.editarFolha);
       formFolha(servico.folhaDoMes(estado.mesFolha + "-01").find((f) => f.pessoa === pessoa));

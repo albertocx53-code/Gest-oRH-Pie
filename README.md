@@ -15,7 +15,7 @@ Professor: Marcos Gomes da Silva Rocha
 | Jefferson | Cadastro de funcionários |
 | Paulo Victor | Interface |
 | Kerlon | [parte] |
-| Cleberson Dias | [parte] |
+| Cleberson Dias | Salários (editar lançamento da folha) e testes da folha em memória e no banco |
 
 ## O que o sistema faz
 
@@ -24,7 +24,7 @@ Professor: Marcos Gomes da Silva Rocha
 - Controle de ponto (presença, atraso e falta), com lançamento de falta e atraso e frequência por período
 - Recrutamento (vagas e candidatos)
 - Agenda do RH
-- Folha de pagamento
+- Folha de pagamento, com edição de lançamento
 - Painel com o resumo do dia
 
 ## Estrutura
