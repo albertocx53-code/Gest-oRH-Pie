@@ -37,6 +37,11 @@ public sealed class RhService(IRhRepository repository, RhSession session)
     public string VacancyTitle(int id) => Vacancies.FirstOrDefault(item => item.Id == id)?.Title ?? "Vaga indisponível";
     public int Present(DateTime day) => AttendanceBetween(day, day).Count(item => item.In.Length > 0);
 
+    // Jefferson: grava o cadastro de funcionário (novo ou edição). É aqui que os campos da tela
+    // se ligam às regras: Write confere a sessão e o perfil (Gestor não grava), o departamento e
+    // a situação precisam estar nas listas de RhOptions, a admissão fica entre 1900 e 2100, e
+    // nome e cargo são obrigatórios (até 120 caracteres, sem espaços sobrando nas pontas).
+    // Id 0 = funcionário novo; um Id diferente de zero precisa existir para ser editado.
     public void SaveEmployee(Employee item) => Write(() =>
     {
         if (item.Id != 0) Require(repository.Employees.Any(employee => employee.Id == item.Id), "Funcionário não encontrado.");
@@ -46,6 +51,8 @@ public sealed class RhService(IRhRepository repository, RhSession session)
         repository.SaveEmployee(item with { Name = Text(item.Name, "nome"), Role = Text(item.Role, "cargo"), Started = item.Started.Date });
     });
 
+    // Jefferson: só exclui cadastro sem histórico. Quem já tem ponto ou salário é mantido,
+    // e o caminho é mudar a situação para Inativo (botão Inativar, em CadastroDeFuncionarios).
     public void DeleteEmployee(int id) => Write(() =>
     {
         Require(repository.Employees.Any(item => item.Id == id), "Funcionário não encontrado.");
