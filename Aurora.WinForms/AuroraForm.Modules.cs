@@ -397,7 +397,7 @@ internal sealed partial class AuroraForm
 
     private Panel PayPage()
     {
-        var panel = Module("Salários", "Consulte a folha por competência e lance valores simulados.", Action("Novo lançamento", "plus", 154, true, AddPay));
+        var panel = Module("Salários", "Consulte a folha por competência e lance valores simulados.", Action("Novo lançamento", "plus", 154, true, () => AddPay()));
         var card = Card(14);
         PutWide(panel, card, 104, 66);
         var month = DateField(payrollMonth, true);
@@ -408,7 +408,12 @@ internal sealed partial class AuroraForm
         AuroraStyle.Put(card, total, 158, 21);
         var grid = Grid(("Funcionário", 132), ("Salário", 82), ("Bônus", 70), ("Descontos", 76), ("Total simulado", 92));
         grid.AccessibleName = "Lançamentos salariais";
-        PlaceGrid(panel, grid, 184, 440);
+        PlaceGrid(panel, grid, 184, 406);
+        // Diaz: editar um lançamento existente (antes só dava para digitar tudo de novo em "Novo lançamento").
+        void Edit() { if (data.CanEdit && grid.CurrentRow?.Tag is Payroll item) AddPay(item); }
+        var edit = EditAction("Editar lançamento", "", 160, false, Edit);
+        AuroraStyle.Put(panel, edit, 4, 625);
+        grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Edit(); };
         void Filter()
         {
             payrollMonth = month.Value;
@@ -416,26 +421,35 @@ internal sealed partial class AuroraForm
             var entries = data.PayrollFor(month.Value);
             foreach (var item in entries) Row(grid, item, data.Name(item.Person), item.Base.ToString("C"), item.Bonus.ToString("C"), item.Discount.ToString("C"), item.Total.ToString("C"));
             total.Text = entries.Count == 0 ? "Nenhum lançamento nesta competência" : $"Total simulado: {entries.Sum(item => item.Total):C}";
+            edit.Enabled = data.CanEdit && grid.RowCount > 0;
         }
         month.ValueChanged += (_, _) => Filter();
         Filter();
         return panel;
     }
 
-    private void AddPay()
+    // entry nulo = novo lançamento. Com entry, o funcionário e a competência (a chave do lançamento) ficam travados.
+    private void AddPay(Payroll? entry = null)
     {
         if (!CanViewPay) return;
         var staff = data.Employees.ToArray();
         if (staff.Length == 0) { Status("Cadastre um funcionário primeiro"); return; }
-        var person = Choice(staff.Select(item => $"{item.Name} · {item.Id}"), "");
-        var month = DateField(payrollMonth, true);
-        static NumericUpDown Amount() => new() { DecimalPlaces = 2, Maximum = 1_000_000, ThousandsSeparator = true, Font = AuroraStyle.Font(10) };
-        var value = Amount();
-        var bonus = Amount();
-        var discount = Amount();
-        using var form = new EntryForm("Novo lançamento", [("Funcionário", person), ("Competência", month), ("Salário (R$)", value), ("Bônus (R$)", bonus), ("Descontos (R$)", discount)],
+        var labels = staff.Select(item => $"{item.Name} · {item.Id}").ToArray();
+        var index = entry is null ? -1 : Array.FindIndex(staff, item => item.Id == entry.Person);
+        var person = Choice(labels, index >= 0 ? labels[index] : "");
+        var month = DateField(entry?.Month ?? payrollMonth, true);
+        if (entry is not null) person.Enabled = month.Enabled = false;
+        static NumericUpDown Amount(decimal initial) => new() { DecimalPlaces = 2, Maximum = 1_000_000, ThousandsSeparator = true, Font = AuroraStyle.Font(10), Value = initial };
+        var value = Amount(entry?.Base ?? 0);
+        var bonus = Amount(entry?.Bonus ?? 0);
+        var discount = Amount(entry?.Discount ?? 0);
+        var title = entry is null ? "Novo lançamento" : "Editar lançamento";
+        var note = entry is null
+            ? "Um lançamento por funcionário e competência. Confirmar atualiza o valor existente."
+            : "Funcionário e competência não mudam na edição. Altere os valores e confirme.";
+        using var form = new EntryForm(title, [("Funcionário", person), ("Competência", month), ("Salário (R$)", value), ("Bônus (R$)", bonus), ("Descontos (R$)", discount)],
             () => data.SavePayroll(new(staff[person.SelectedIndex].Id, month.Value, value.Value, bonus.Value, discount.Value)),
-            "Um lançamento por funcionário e competência. Confirmar atualiza o valor existente.");
+            note);
         if (form.ShowDialog(this) != DialogResult.OK) return;
         payrollMonth = month.Value;
         Navigate("pay");
