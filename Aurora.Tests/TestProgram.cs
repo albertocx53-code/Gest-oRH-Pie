@@ -20,7 +20,7 @@ internal static class TestProgram
         try
         {
             CheckServices();
-            TesteDoBanco.Rodar(); // testes do banco SQLite (Alberto)
+            TesteDoBanco.Rodar(); // testes do banco SQLite
             TesteDoPonto.Rodar(); // testes do ponto e frequência (Clóvis)
             TesteSalarios.Rodar(); // folha de pagamento em memória e no banco (Diaz)
             TesteDosFuncionarios.Rodar(); // testes do cadastro de funcionários (Jefferson)
@@ -228,7 +228,7 @@ internal static class TestProgram
             Click(modal, "Confirmar");
         });
         Check(Grid(main, "Lançamentos salariais").Rows.Cast<DataGridViewRow>().Any(row => row.Cells[4].Value?.ToString()?.Contains("5.350,00") == true), "edição do lançamento atualiza o líquido");
-        // Alberto: tela Sobre o projeto (equipe, banco, códigos, POO e como rodar)
+        // Tela Sobre o projeto (equipe, banco, códigos, POO e como rodar)
         Click(main, "Sobre o projeto");
         Check(Descendants(main).OfType<Label>().Any(item => item.Text == "Kerlon"), "sobre o projeto mostra a equipe");
         foreach (var aba in new[] { "Banco de dados", "POO", "Como rodar", "Códigos" }) Click(main, aba);

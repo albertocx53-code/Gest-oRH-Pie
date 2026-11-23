@@ -6,7 +6,7 @@ public enum RhRole { Administrator, HumanResources, Manager }
 
 public sealed record RhAccount(string Username, string DisplayName, RhRole Role, string SaltHex, string HashHex, int Iterations);
 
-// Esta consulta é o ponto de troca para a futura tabela de usuários de Alberto.
+// Contrato de busca das contas de login: DemoAccounts (memória) ou ContasDoBanco (tabela usuarios).
 public interface IAccountDirectory
 {
     RhAccount? Find(string username);

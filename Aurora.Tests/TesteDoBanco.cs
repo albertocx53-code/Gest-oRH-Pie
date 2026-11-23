@@ -3,7 +3,7 @@ using Aurora.Dados;
 
 namespace Aurora.Tests;
 
-// TesteDoBanco - Alberto (parte do banco de dados)
+// TesteDoBanco - testes da camada de acesso aos dados
 //
 // Testes da camada de dados. Repete as regras testadas com a lista em memória,
 // agora usando o banco SQLite.
@@ -30,7 +30,7 @@ internal static class TesteDoBanco
             TestarRegrasComOServico(banco);
             TestarChavesDoBanco(banco);
             TestarSeOsDadosFicamSalvos(banco, scripts);
-            Console.WriteLine("Banco de dados (Alberto): todos os testes passaram.");
+            Console.WriteLine("Banco de dados: todos os testes passaram.");
         }
         finally
         {

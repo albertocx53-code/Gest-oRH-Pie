@@ -73,7 +73,7 @@ internal sealed partial class AuroraForm : Form
             nav.Add(item.Id, button);
             AuroraStyle.Put(rail, button, 11, 46 + i * 48);
         }
-        // Alberto: área "Sobre o projeto", com a equipe, o banco, os códigos e a POO (AuroraForm.Sobre.cs).
+        // Área "Sobre o projeto", com a equipe, o banco, os códigos e a POO (AuroraForm.Sobre.cs).
         var projetoTop = 46 + Pages.Length * 48 + 14;
         AuroraStyle.Put(rail, AuroraStyle.Label("PROJETO", 8, true, AuroraStyle.Muted), 16, projetoTop);
         var sobre = new AuroraButton("Sobre o projeto") { Glyph = "info", Size = new(169, 43), Font = AuroraStyle.Font(9.5f, true), Navigation = true, TabIndex = Pages.Length };

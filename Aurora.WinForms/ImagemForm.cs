@@ -1,6 +1,6 @@
 namespace Aurora.WinForms;
 
-// ImagemForm - Alberto
+// ImagemForm - janela para ampliar imagens
 //
 // Janela para ver uma imagem ampliada (diagrama do banco ou trecho de código).
 // Abre com a imagem inteira na janela. Dá para ampliar e diminuir pelos botões,

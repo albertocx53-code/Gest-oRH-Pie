@@ -2,7 +2,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Aurora.Dados;
 
-// CriadorDoBanco - Alberto (parte do banco de dados)
+// CriadorDoBanco - camada de acesso aos dados
 //
 // Cria o arquivo aurora.db na primeira vez que o sistema é aberto,
 // executando os scripts da pasta BancoDeDados:

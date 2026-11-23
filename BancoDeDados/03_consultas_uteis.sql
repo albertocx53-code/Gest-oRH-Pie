@@ -1,5 +1,5 @@
 -- Script 03 - Consultas de exemplo
--- Autor: Alberto
+-- Parte: banco de dados
 --
 -- Este script só faz SELECT, não altera nada no banco.
 -- Mostra os relacionamentos funcionando (JOINs) e ajuda a conferir os dados.

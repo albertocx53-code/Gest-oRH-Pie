@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace Aurora.WinForms;
 
-// Sobre o projeto - Alberto
+// Sobre o projeto
 //
 // Tela com o que antes só aparecia no site do projeto: a equipe, o banco de dados,
 // os trechos de código de cada parte, onde entra a POO e como rodar o sistema.
@@ -32,9 +32,9 @@ internal sealed partial class AuroraForm
             ["A senha vira um hash com PBKDF2 e SHA-256, nunca fica guardada aberta", "FixedTimeEquals compara sem dar pistas pelo tempo de resposta", "ZeroMemory apaga o hash calculado da memória"]),
         ("code_permissoes.png", "Regras e permissões", "Rickelmy · RhService.cs",
             ["Só Administrador e RH podem editar e ver salários", "Cada regra é conferida com Require antes de gravar", "Quem tem ponto ou folha não pode ser apagado"]),
-        ("code_tabela_ponto.png", "A tabela de ponto", "Alberto · 01_criar_tabelas.sql",
+        ("code_tabela_ponto.png", "A tabela de ponto", "Banco de dados · 01_criar_tabelas.sql",
             ["Chave dupla (matrícula + dia): um ponto por pessoa por dia", "CHECK só aceita Presença, Atraso ou Falta", "ON DELETE RESTRICT protege o histórico"]),
-        ("code_repositorio.png", "Gravando no banco", "Alberto · RepositorioSqlite.cs",
+        ("code_repositorio.png", "Gravando no banco", "Banco de dados · RepositorioSqlite.cs",
             ["Valores vão por parâmetro, o que protege contra SQL Injection", "Entrada e saída vazias viram NULL na falta", "Se o banco recusar, aparece uma mensagem clara na tela"]),
         ("code_cadastro.png", "Ficha e Inativar", "Jefferson · CadastroDeFuncionarios.cs",
             ["O salário só é buscado se o perfil pode ver a folha", "Inativar troca só a situação e mantém o histórico", "As regras de perfil vêm do SaveEmployee do RhService"]),

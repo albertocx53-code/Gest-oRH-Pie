@@ -1,4 +1,4 @@
-// Camada de dados da versão web - Alberto (parte do banco de dados)
+// Camada de dados da versão web
 //
 // Usa o mesmo SQLite do sistema desktop, só que rodando no navegador (biblioteca sql.js).
 // Na primeira vez, executa os mesmos scripts da pasta BancoDeDados

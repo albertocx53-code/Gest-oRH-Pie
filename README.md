@@ -37,7 +37,7 @@ Professor: Marcos Gomes da Silva Rocha
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `BancoDeDados` | Scripts SQL, diagrama das tabelas e banco de exemplo |
 | `Aurora.Tests` | Testes de cada parte (banco, ponto, salários, funcionários e recrutamento) e das telas |
-| `Relatorios` | Relatórios de entrega de cada integrante |
+| `Relatorios` | Relatório geral da equipe (`RELATORIO_GERAL.md` e `.pdf`) e os relatórios de entrega de cada integrante |
 | `site` | Página de apresentação e versão web do sistema (publicada no Vercel) |
 
 ## Versão web

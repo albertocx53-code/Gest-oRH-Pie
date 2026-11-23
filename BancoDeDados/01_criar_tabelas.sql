@@ -1,5 +1,5 @@
 -- Script 01 - Criação das tabelas do Gestão RH
--- Autor: Alberto (parte do banco de dados)
+-- Parte: banco de dados (camada de acesso aos dados)
 --
 -- Banco utilizado: SQLite. O banco fica em um único arquivo (aurora.db),
 -- sem precisar instalar servidor.

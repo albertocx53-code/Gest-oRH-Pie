@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Aurora.Dados;
 
-// RepositorioSqlite - Alberto (parte do banco de dados)
+// RepositorioSqlite - camada de acesso aos dados
 //
 // Camada de acesso aos dados. Lê e grava as informações no arquivo aurora.db.
 // Antes o sistema usava uma lista em memória (DemoRh) e perdia tudo ao fechar.

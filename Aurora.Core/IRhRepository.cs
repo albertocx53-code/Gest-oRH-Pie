@@ -1,6 +1,6 @@
 namespace Aurora.Core;
 
-// Alberto pode trocar DemoRh pelo banco implementando este contrato e ligando-o no Program.cs.
+// Contrato dos dados do sistema: DemoRh guarda em memória e RepositorioSqlite guarda no banco. O Program.cs escolhe qual usar.
 // Id zero indica cadastro novo. O repositório atribui o Id definitivo para evitar colisões.
 public interface IRhRepository
 {

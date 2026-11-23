@@ -1,7 +1,6 @@
 # Banco de dados do Aurora
 
-**Responsável:** Alberto
-**Minha parte no trabalho:** modelar as tabelas e os relacionamentos, fazer os scripts de criação e de dados fictícios e programar a camada de acesso aos dados.
+**Parte do trabalho:** modelar as tabelas e os relacionamentos, fazer os scripts de criação e de dados fictícios e programar a camada de acesso aos dados.
 
 ---
 
@@ -89,9 +88,9 @@ Tudo inventado. Usei os mesmos nomes que já apareciam na demonstração do sist
 | `RepositorioSqlite.cs` | Faz os SELECT, INSERT, UPDATE e DELETE de funcionários, ponto, folha, vagas, candidatos e agenda |
 | `ContasDoBanco.cs` | Procura o usuário na tabela `usuarios` na hora do login |
 
-O Rickelmy já tinha deixado prontas as interfaces `IRhRepository` e `IAccountDirectory`. Eu só fiz as classes que implementam essas interfaces usando o banco. Por isso as telas não mudaram nada. No `Program.cs` troquei a lista em memória (`DemoRh`) pelo `RepositorioSqlite`.
+As interfaces `IRhRepository` e `IAccountDirectory` já existiam no projeto. A camada de dados só implementa essas interfaces usando o banco, por isso as telas não mudaram nada. No `Program.cs`, a lista em memória (`DemoRh`) foi trocada pelo `RepositorioSqlite`.
 
-Algumas coisas que cuidei no código:
+Alguns cuidados no código:
 
 - **Uso parâmetros** (`$nome`, `$cargo`...) em vez de montar o SQL juntando texto. Assim um nome como "D'Ávila" não quebra o comando, e fica protegido contra SQL Injection.
 - **Erro do banco vira mensagem amigável.** Se uma chave ou um CHECK barrar a gravação, o usuário vê uma mensagem normal na tela, em vez de um erro técnico do SQLite.

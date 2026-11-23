@@ -1,5 +1,5 @@
 -- Script 02 - Dados fictícios para teste e apresentação
--- Autor: Alberto
+-- Parte: banco de dados
 --
 -- Todos os nomes e valores são inventados.
 -- São os mesmos funcionários e vagas da demonstração do sistema.

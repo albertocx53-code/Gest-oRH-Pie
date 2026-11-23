@@ -2,7 +2,7 @@ using Aurora.Core;
 
 namespace Aurora.Dados;
 
-// ContasDoBanco - Alberto (parte do banco de dados)
+// ContasDoBanco - camada de acesso aos dados
 //
 // Busca as contas de login na tabela "usuarios".
 // Substitui as contas que antes ficavam fixas no código (DemoAccounts).

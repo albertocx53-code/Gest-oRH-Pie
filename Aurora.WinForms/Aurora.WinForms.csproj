@@ -8,12 +8,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Aurora.Core/Aurora.Core.csproj" />
-    <!-- Camada de dados do Alberto (SQLite) -->
+    <!-- Camada de acesso aos dados (SQLite) -->
     <ProjectReference Include="../Aurora.Dados/Aurora.Dados.csproj" />
     <InternalsVisibleTo Include="Aurora.Tests" />
   </ItemGroup>
   <ItemGroup>
-    <!-- Imagens da tela Sobre o projeto (Alberto). São copiadas junto com o programa. -->
+    <!-- Imagens da tela Sobre o projeto. São copiadas junto com o programa. -->
     <None Include="Imagens/*.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

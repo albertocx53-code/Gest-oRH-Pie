@@ -27,7 +27,7 @@ internal static class Program
             return;
         }
 
-        // Parte do Alberto: daqui pra baixo os dados vêm do banco SQLite.
+        // Daqui para baixo os dados vêm do banco SQLite.
         // O arquivo aurora.db fica do lado do .exe. Na primeira vez ele é criado
         // com os scripts da pasta BancoDeDados (tabelas + dados fictícios).
         var caminhoDoBanco = Path.Combine(AppContext.BaseDirectory, "aurora.db");
