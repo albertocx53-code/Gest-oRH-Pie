@@ -71,4 +71,4 @@ Como o `AuroraForm.Modules.cs` do zip é o arquivo completo, ele substitui o que
 - A posição dos botões novos (y = 629) e do funil (y = 360) foi calculada pelas medidas da tela atual. Se algum botão ficar sobreposto ou cortado, é só ajustar essas coordenadas em `AuroraForm.Recrutamento.cs`.
 - A repetição de candidato é conferida só pelo nome. Dois candidatos homônimos reais seriam bloqueados na mesma vaga.
 - `MoverEtapa` existe no serviço (permite voltar etapas para corrigir erros), mas a tela só usa `AvancarEtapa`. Para voltar uma etapa, use o **Alterar etapa** que já existia. Não há histórico de quem mudou a etapa e quando.
-- O executável da pasta `Executar` é o build antigo. Para ver a minha parte funcionando, é preciso compilar de novo no Visual Studio (F5).
+- Para ver a minha parte funcionando, é só abrir a solução no Visual Studio e apertar F5.

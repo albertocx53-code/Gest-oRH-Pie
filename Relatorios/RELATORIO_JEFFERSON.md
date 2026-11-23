@@ -98,4 +98,4 @@ No teste das telas, a ficha da funcionária cadastrada mostra a matrícula 109, 
 - A busca continua por nome ou cargo. A matrícula aparece na tabela e na ficha, mas não entrou na busca, porque isso exigiria mudar o filtro que já existia.
 - O Inativar lê o cadastro e grava de novo só com a situação trocada. Com várias pessoas editando o mesmo funcionário ao mesmo tempo, o ideal seria um UPDATE só da situação, dentro de uma transação.
 - A ficha usa 13/11/2026 como "hoje", igual ao resto da demonstração.
-- O executável da pasta `Executar` é o build antigo. Para ver a minha parte funcionando, é preciso compilar de novo no Visual Studio (F5).
+- Para ver a minha parte funcionando, é só abrir a solução no Visual Studio e apertar F5.

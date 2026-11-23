@@ -24,6 +24,7 @@ internal static class TestProgram
             TesteDoPonto.Rodar(); // testes do ponto e frequência (Clóvis)
             TesteSalarios.Rodar(); // folha de pagamento em memória e no banco (Diaz)
             TesteDosFuncionarios.Rodar(); // testes do cadastro de funcionários (Jefferson)
+            TesteDoRecrutamento.Rodar(); // testes do recrutamento (Kerlon)
             CheckWindows();
             Console.WriteLine("Serviços e fluxos do Windows Forms aprovados.");
             return 0;
@@ -200,6 +201,8 @@ internal static class TestProgram
             Click(modal, "Confirmar");
         });
         Check(Equals(Grid(main, "Lista de candidaturas").Rows[0].Cells[2].Value, "Proposta"), "etapa mudou na tabela");
+        // Parte do Kerlon: os botões novos da tela de Recrutamento ficam disponíveis para o RH.
+        Check(Button(main, "Avançar etapa").Enabled && Button(main, "Mudar de vaga").Enabled, "botões do recrutamento habilitados");
         Click(main, "Calendário");
         Dialog(main, "Novo compromisso", "Novo compromisso", modal =>
         {

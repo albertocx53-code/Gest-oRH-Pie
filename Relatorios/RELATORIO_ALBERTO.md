@@ -37,4 +37,4 @@ Os detalhes de cada tabela e das decisões que tomei estão em `BancoDeDados/LEI
 
 ## Observação pro grupo
 
-O executável que está na pasta `Executar` é o build antigo, que ainda usa os dados em memória. Pra gerar um novo com o banco, é só compilar de novo no Visual Studio (ou rodar `dotnet publish`). Na primeira vez ele baixa o pacote `Microsoft.Data.Sqlite` do NuGet.
+Para gerar o executável, é só compilar no Visual Studio (F5) ou rodar `dotnet publish`. Na primeira vez ele baixa o pacote `Microsoft.Data.Sqlite` do NuGet.

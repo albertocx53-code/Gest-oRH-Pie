@@ -36,8 +36,9 @@ Professor: Marcos Gomes da Silva Rocha
 | `Aurora.WinForms` | Telas do sistema (a pasta `Imagens` tem as figuras da tela Sobre o projeto) |
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `BancoDeDados` | Scripts SQL, diagrama das tabelas e banco de exemplo |
-| `Aurora.Tests` | Testes |
-| `Executar` | Versão compilada anterior (ainda sem o banco) |
+| `Aurora.Tests` | Testes de cada parte (banco, ponto, salários, funcionários e recrutamento) e das telas |
+| `Relatorios` | Relatórios de entrega de cada integrante |
+| `site` | Página de apresentação e versão web do sistema (publicada no Vercel) |
 
 ## Versão web
 
@@ -52,5 +53,9 @@ Publicada em: https://gestao-rh-teal.vercel.app/sistema/
 3. Apertar F5. O banco `aurora.db` é criado sozinho ao lado do executável, com dados fictícios.
 
 Login de teste: usuário `rh`, `admin` ou `gestor`, senha `Aurora.demo26`.
+
+## Testes
+
+No Visual Studio, defina `Aurora.Tests` como projeto de inicialização e aperte F5 (ou rode `dotnet run --project Aurora.Tests -c Release`). Os testes conferem as regras de cada parte na lista em memória e no banco SQLite e depois abrem as telas e clicam nos botões. No fim aparece "Serviços e fluxos do Windows Forms aprovados."
 
 Mais detalhes do banco em [`BancoDeDados/LEIA-ME.md`](BancoDeDados/LEIA-ME.md).
