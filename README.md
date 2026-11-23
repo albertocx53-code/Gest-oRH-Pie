@@ -50,7 +50,8 @@ Publicada em: https://gestao-rh-teal.vercel.app/sistema/
 
 1. Abrir `Aurora.slnx` no Visual Studio (precisa do .NET 10 e de Windows).
 2. Na primeira vez, o Visual Studio baixa o pacote `Microsoft.Data.Sqlite`.
-3. Apertar F5. O banco `aurora.db` é criado sozinho ao lado do executável, com dados fictícios.
+3. Conferir se `Aurora.WinForms` está como projeto de inicialização (fica em negrito no Gerenciador de Soluções). Se não estiver, clicar com o botão direito nele e escolher "Definir como Projeto de Inicialização". `Aurora.Core` e `Aurora.Dados` são bibliotecas e não abrem sozinhas.
+4. Apertar F5. O banco `aurora.db` é criado sozinho ao lado do executável, com dados fictícios.
 
 Login de teste: usuário `rh`, `admin` ou `gestor`, senha `Aurora.demo26`.
 

@@ -1,6 +1,6 @@
 <Solution>
+  <Project Path="Aurora.WinForms/Aurora.WinForms.csproj" />
   <Project Path="Aurora.Core/Aurora.Core.csproj" />
   <Project Path="Aurora.Dados/Aurora.Dados.csproj" />
-  <Project Path="Aurora.WinForms/Aurora.WinForms.csproj" />
   <Project Path="Aurora.Tests/Aurora.Tests.csproj" />
 </Solution>
