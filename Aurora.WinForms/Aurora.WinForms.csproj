@@ -12,4 +12,8 @@
     <ProjectReference Include="../Aurora.Dados/Aurora.Dados.csproj" />
     <InternalsVisibleTo Include="Aurora.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Imagens da tela Sobre o projeto (Alberto). São copiadas junto com o programa. -->
+    <None Include="Imagens/*.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

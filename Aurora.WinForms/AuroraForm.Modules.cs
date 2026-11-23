@@ -81,6 +81,11 @@ internal sealed partial class AuroraForm
     private static string Chosen(ComboBox box) => (string?)box.SelectedItem ?? "";
     private static bool Matches(string item, string query) => CultureInfo.CurrentCulture.CompareInfo.IndexOf(item, query.Trim(), CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
 
+    // Jefferson: tela de Funcionários (cadastrar, consultar, editar e excluir).
+    // Em cima ficam a busca por nome ou cargo e os filtros de departamento e situação.
+    // No meio, a tabela. Embaixo, os botões. Cada linha da tabela guarda o funcionário no Tag,
+    // e é por ele que os botões sabem qual cadastro abrir.
+    // O que eu acrescentei (Matrícula, Consultar ficha e Inativar) está em AuroraForm.Funcionarios.cs.
     private Panel PeoplePage()
     {
         var panel = Module("Funcionários", "Consulte o cadastro por nome, cargo ou departamento.", EditAction("Novo funcionário", "plus", 169, true, () => EditEmployee(null)));
@@ -110,6 +115,9 @@ internal sealed partial class AuroraForm
         AuroraStyle.Put(panel, edit, 4, 625);
         AuroraStyle.Put(panel, remove, 146, 625);
         grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Edit(); };
+        // Jefferson: Filter limpa e remonta a tabela a cada letra digitada ou filtro escolhido.
+        // Matches ignora maiúsculas e acentos, por isso "operacoes" encontra "Operações".
+        // O índice 0 das listas é "Todos os departamentos" / "Todas as situações" (sem filtro).
         void Filter()
         {
             grid.Rows.Clear();
@@ -123,13 +131,23 @@ internal sealed partial class AuroraForm
         team.SelectedIndexChanged += (_, _) => Filter();
         state.SelectedIndexChanged += (_, _) => Filter();
         Filter();
+        // Parte do Jefferson: coluna Matrícula e botões Consultar ficha e Inativar (AuroraForm.Funcionarios.cs).
+        FerramentasDoCadastro(panel, grid);
         return panel;
     }
 
+    // Jefferson: formulário de cadastro. person == null é cadastro novo (título "Novo funcionário");
+    // com um funcionário, é edição e os campos já vêm preenchidos.
+    // Departamento e Situação são listas fechadas (RhOptions), então só aceitam valores válidos.
+    // Ao confirmar, o EntryForm chama RhService.SaveEmployee. Se alguma regra falhar, a mensagem
+    // aparece no próprio formulário e o que foi digitado continua lá para corrigir.
+    // Id 0 indica cadastro novo: quem gera a matrícula é o repositório (no banco, o AUTOINCREMENT).
     private void EditEmployee(Employee? person)
     {
         var name = TextField(person?.Name ?? "");
         var role = TextField(person?.Role ?? "");
+        // Parte do Jefferson: o campo Cargo sugere os cargos que já existem no cadastro.
+        SugerirCargos(role);
         var team = Choice(RhOptions.Teams, person?.Team ?? "Pessoas");
         var state = Choice(RhOptions.EmployeeStatuses, person?.Status ?? "Ativo");
         var start = DateField(person?.Started ?? DemoRh.Today);
@@ -141,6 +159,9 @@ internal sealed partial class AuroraForm
         Status("Cadastro salvo");
     }
 
+    // Jefferson: exclusão com confirmação. O botão padrão é "Não", para evitar clique acidental.
+    // Se o funcionário tiver ponto ou salário, RhService.DeleteEmployee recusa e a mensagem
+    // sugere mudar a situação para Inativo (é o que o botão Inativar faz direto).
     private void RemoveEmployee(Employee person)
     {
         if (MessageBox.Show(this, $"Excluir o cadastro de {person.Name}?", "Excluir funcionário", MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2) != DialogResult.Yes) return;
@@ -250,6 +271,9 @@ internal sealed partial class AuroraForm
         Status("Ponto registrado");
     }
 
+    // Kerlon: tela de Recrutamento. Em cima, a tabela de vagas; embaixo, a das candidaturas.
+    // Cada linha guarda a vaga ou a candidatura no Tag, e é por ele que os botões sabem qual abrir.
+    // O que eu acrescentei (funil, Candidatos da vaga, Avançar etapa e Mudar de vaga) está em AuroraForm.Recrutamento.cs.
     private Panel HirePage()
     {
         var panel = Module("Recrutamento", "Organize vagas e acompanhe cada candidatura.", EditAction("Novo candidato", "plus", 147, true, () => EditCandidate(null)));
@@ -274,6 +298,8 @@ internal sealed partial class AuroraForm
         void Edit() { if (data.CanEdit && candidates.CurrentRow?.Tag is Candidate item) EditCandidate(item); }
         AuroraStyle.Put(panel, EditAction("Alterar etapa", "", 115, false, Edit), 2, 629);
         candidates.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Edit(); };
+        // Parte do Kerlon: funil de etapas, Candidatos da vaga, Avançar etapa e Mudar de vaga (AuroraForm.Recrutamento.cs).
+        FerramentasDoRecrutamento(panel, jobs, candidates);
         return panel;
     }
 
@@ -298,7 +324,8 @@ internal sealed partial class AuroraForm
         var vacancy = Choice(titles, titles[Math.Max(0, selected)]);
         var stage = Choice(RhOptions.Stages, candidate?.Stage ?? "Triagem");
         using var form = new EntryForm(candidate is null ? "Novo candidato" : "Editar candidatura", [("Nome", name), ("Vaga", vacancy), ("Etapa", stage)],
-            () => data.SaveCandidate(new(candidate?.Id ?? 0, name.Text, jobs[vacancy.SelectedIndex].Id, Chosen(stage))));
+            // Kerlon: SalvarCandidatura (Recrutamento.cs) confere se o mesmo nome já está na vaga e depois chama o SaveCandidate.
+            () => data.SalvarCandidatura(new(candidate?.Id ?? 0, name.Text, jobs[vacancy.SelectedIndex].Id, Chosen(stage))));
         if (form.ShowDialog(this) != DialogResult.OK) return;
         Navigate(page);
         Status("Candidatura salva");

@@ -73,6 +73,13 @@ internal sealed partial class AuroraForm : Form
             nav.Add(item.Id, button);
             AuroraStyle.Put(rail, button, 11, 46 + i * 48);
         }
+        // Alberto: área "Sobre o projeto", com a equipe, o banco, os códigos e a POO (AuroraForm.Sobre.cs).
+        var projetoTop = 46 + Pages.Length * 48 + 14;
+        AuroraStyle.Put(rail, AuroraStyle.Label("PROJETO", 8, true, AuroraStyle.Muted), 16, projetoTop);
+        var sobre = new AuroraButton("Sobre o projeto") { Glyph = "info", Size = new(169, 43), Font = AuroraStyle.Font(9.5f, true), Navigation = true, TabIndex = Pages.Length };
+        sobre.Click += (_, _) => Navigate("about");
+        nav.Add("about", sobre);
+        AuroraStyle.Put(rail, sobre, 11, projetoTop + 24);
         var person = new Surface(Color.FromArgb(172, 36, 42, 65), Color.FromArgb(91, 142, 153, 192), 13) { Size = new(167, 59) };
         person.Location = new(12, rail.Height - 72);
         person.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
@@ -130,7 +137,7 @@ internal sealed partial class AuroraForm : Form
         content.AutoScrollPosition = Point.Empty;
         var view = page switch
         {
-            "people" => PeoplePage(), "time" => TimePage(), "hire" => HirePage(), "calendar" => CalendarPage(), "pay" => PayPage(), _ => Dashboard()
+            "people" => PeoplePage(), "time" => TimePage(), "hire" => HirePage(), "calendar" => CalendarPage(), "pay" => PayPage(), "about" => AboutPage(), _ => Dashboard()
         };
         view.Dock = DockStyle.Top;
         content.Controls.Add(view);

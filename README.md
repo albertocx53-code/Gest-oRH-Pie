@@ -26,13 +26,14 @@ Professor: Marcos Gomes da Silva Rocha
 - Agenda do RH
 - Folha de pagamento, com edição de lançamento
 - Painel com o resumo do dia
+- Sobre o projeto: equipe, diagrama do banco, trechos de código de cada parte, POO e como rodar (as imagens abrem ampliadas ao clicar)
 
 ## Estrutura
 
 | Pasta | Conteúdo |
 | --- | --- |
 | `Aurora.Core` | Modelos, regras de negócio (`RhService`), login (`Authentication`), frequência do ponto (`FrequenciaDePonto`) cadastro de funcionários (`CadastroDeFuncionarios`) e recrutamento (`Recrutamento`) |
-| `Aurora.WinForms` | Telas do sistema |
+| `Aurora.WinForms` | Telas do sistema (a pasta `Imagens` tem as figuras da tela Sobre o projeto) |
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `BancoDeDados` | Scripts SQL, diagrama das tabelas e banco de exemplo |
 | `Aurora.Tests` | Testes |

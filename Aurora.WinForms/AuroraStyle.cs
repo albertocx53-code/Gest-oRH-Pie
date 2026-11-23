@@ -71,6 +71,9 @@ internal static class AuroraStyle
             case "pay":
                 g.DrawRectangle(p, 2, 4, 16, 12); g.DrawEllipse(p, 7, 7, 6, 6);
                 break;
+            case "info":
+                g.DrawEllipse(p, 2, 2, 16, 16); g.DrawLine(p, 10, 9, 10, 14.5f); g.DrawLine(p, 10, 5.8f, 10, 6);
+                break;
             case "plus": g.DrawLine(p, 10, 4, 10, 16); g.DrawLine(p, 4, 10, 16, 10); break;
             case "prev": g.DrawLines(p, [new(13, 4), new(7, 10), new(13, 16)]); break;
             case "next": g.DrawLines(p, [new(7, 4), new(13, 10), new(7, 16)]); break;
