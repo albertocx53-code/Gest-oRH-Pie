@@ -6,50 +6,51 @@ namespace Aurora.WinForms;
 
 internal static class Program
 {
+    // É aqui que o programa começa
     [STAThread]
-    private static void Main(string[] args)
+    private static void Main()
     {
+        // datas e dinheiro no formato do Brasil
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
         CultureInfo.CurrentUICulture = CultureInfo.CurrentCulture;
         ApplicationConfiguration.Initialize();
-        Application.SetColorMode(SystemColorMode.Dark);
-        if (args is ["--capturas", var directory])
-        {
-            // As capturas de tela continuam usando os dados em memória (DemoRh),
-            // pra sair sempre igual, não importa o que tenha sido salvo no banco.
-            IRhRepository demo = new DemoRh();
-            var demoAuthentication = new Authentication(new DemoAccounts());
-            using (var login = new LoginForm(demoAuthentication)) login.ExportPreview(directory);
-            var previewSession = demoAuthentication.SignIn("rh", "Aurora.demo26")!;
-            using var form = new AuroraForm(new RhService(demo, previewSession));
-            form.ExportPreviews(directory);
-            previewSession.SignOut();
-            return;
-        }
+        Application.SetColorMode(SystemColorMode.Classic);
 
-        // Daqui para baixo os dados vêm do banco SQLite.
-        // O arquivo aurora.db fica do lado do .exe. Na primeira vez ele é criado
-        // com os scripts da pasta BancoDeDados (tabelas + dados fictícios).
-        var caminhoDoBanco = Path.Combine(AppContext.BaseDirectory, "aurora.db");
-        CriadorDoBanco.CriarSeNaoExistir(caminhoDoBanco, Path.Combine(AppContext.BaseDirectory, "BancoDeDados"));
+        // Os dados ficam no banco SQLite (arquivo aurora.db do lado do .exe).
+        // Na primeira vez o banco é criado com os scripts da pasta BancoDeDados.
+        string caminhoDoBanco = Path.Combine(AppContext.BaseDirectory, "aurora.db");
+        string pastaDosScripts = Path.Combine(AppContext.BaseDirectory, "BancoDeDados");
+        CriadorDoBanco.CriarSeNaoExistir(caminhoDoBanco, pastaDosScripts);
 
-        IRhRepository repository = new RepositorioSqlite(caminhoDoBanco);
-        var authentication = new Authentication(new ContasDoBanco(caminhoDoBanco));
+        // Antes aqui era "new DadosDeExemplo()" (memória). Agora é o banco.
+        IRepositorio repositorio = new RepositorioSqlite(caminhoDoBanco);
+        Autenticacao autenticacao = new Autenticacao(new ContasDoBanco(caminhoDoBanco));
 
-        RunSessionLoop(repository, authentication);
+        RodarSessoes(repositorio, autenticacao);
     }
 
-    internal static void RunSessionLoop(IRhRepository repository, Authentication authentication)
+    // Abre o login. Se entrar, abre a janela principal.
+    // Quando a pessoa clica em "Sair da conta", volta para o login.
+    internal static void RodarSessoes(IRepositorio repositorio, Autenticacao autenticacao)
     {
-        // Trocar de conta mantém os dados da execução e encerra a sessão usada pela janela anterior.
         while (true)
         {
-            using var login = new LoginForm(authentication);
-            if (login.ShowDialog() != DialogResult.OK || login.Session is not { } session) return;
-            using var form = new AuroraForm(new RhService(repository, session));
-            try { Application.Run(form); }
-            finally { session.SignOut(); }
-            if (!form.ReturnToLogin) return;
+            using var login = new TelaDeLogin(autenticacao);
+            if (login.ShowDialog() != DialogResult.OK) return; // fechou o login
+            Sessao? sessao = login.SessaoAberta;
+            if (sessao == null) return;
+
+            using var janela = new TelaPrincipal(new ServicoRh(repositorio, sessao));
+            try
+            {
+                Application.Run(janela);
+            }
+            finally
+            {
+                sessao.Sair(); // encerra a sessão quando a janela fecha
+            }
+
+            if (!janela.VoltarParaLogin) return; // fechou o sistema
         }
     }
 }

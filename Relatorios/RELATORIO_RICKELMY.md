@@ -19,12 +19,12 @@ As contas são fictícias. A demonstração compara senhas por PBKDF2-HMAC-SHA25
 | Arquivo | O que faz |
 | --- | --- |
 | `Aurora.WinForms/Program.cs` | Monta os serviços e injeta as fontes de dados. É por aqui que começa a troca do repositório em memória pelo banco. |
-| `Aurora.Core/IRhRepository.cs` | Contrato para ler e gravar os dados de RH. Os formulários chamam `RhService`, que usa esse contrato. |
-| `Aurora.Core/Authentication.cs` | Define `IAccountDirectory` para localizar a conta e verificar senha e perfil. |
-| `Aurora.Core/Models.cs` | Define os dados entregues às telas e os valores usados nas validações. |
-| `Aurora.Core/RhService.cs` | Concentra a autorização, a validação, a associação entre registros e a chamada ao repositório. |
-| `Aurora.WinForms/DemoRh.cs` | Guarda os dados de exemplo em memória e mostra o comportamento esperado de cada operação. |
-| `Aurora.WinForms/AuroraForm.Modules.cs` | Liga os filtros e botões das telas ao serviço correspondente. |
+| `Aurora.Core/IRepositorio.cs` | Contrato para ler e gravar os dados de RH. Os formulários chamam `ServicoRh`, que usa esse contrato. |
+| `Aurora.Core/Autenticacao.cs` | Define `IBuscaDeContas` para localizar a conta e verificar senha e perfil. |
+| `Aurora.Core/Modelos.cs` | Define os dados entregues às telas e os valores usados nas validações. |
+| `Aurora.Core/ServicoRh.cs` | Concentra a autorização, a validação, a associação entre registros e a chamada ao repositório. |
+| `Aurora.WinForms/DadosDeExemplo.cs` | Guarda os dados de exemplo em memória e mostra o comportamento esperado de cada operação. |
+| `Aurora.WinForms/TelaPrincipal.Modulos.cs` | Liga os filtros e botões das telas ao serviço correspondente. |
 
 O repositório deve devolver listas estáveis para leitura e atribuir os IDs de novos funcionários, vagas e candidatos quando receber `Id = 0`. No banco, use a matrícula nas relações de ponto e salários e o ID da vaga nas candidaturas. Ponto tem uma chave por matrícula e dia. Salário tem uma chave por matrícula e competência, guardada como o primeiro dia do mês. A edição de ponto mantém a chave original. A confirmação de folha atualiza o lançamento daquela competência. A exclusão de funcionário com histórico deve ser impedida também pelas chaves do banco. As operações que validam e gravam dados relacionados precisam manter a integridade mesmo com mais de uma instância conectada.
 

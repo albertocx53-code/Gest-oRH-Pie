@@ -2,59 +2,51 @@ using Aurora.Core;
 
 namespace Aurora.Dados;
 
-// ContasDoBanco - camada de acesso aos dados
-//
-// Busca as contas de login na tabela "usuarios".
-// Substitui as contas que antes ficavam fixas no código (DemoAccounts).
-//
-// Esta classe só encontra a conta. A conferência da senha é feita
-// pela classe Authentication.
-public class ContasDoBanco : IAccountDirectory
+// Busca as contas de login na tabela "usuarios" do banco.
+// Antes as contas ficavam escritas no código (ContasDeExemplo).
+// Essa classe só acha a conta. Quem confere a senha é a classe Autenticacao.
+public class ContasDoBanco : IBuscaDeContas
 {
-    private readonly string caminhoDoBanco;
+    private string caminhoDoBanco;
 
     public ContasDoBanco(string caminhoDoBanco)
     {
         this.caminhoDoBanco = caminhoDoBanco;
     }
 
-    public RhAccount? Find(string username)
+    public Conta? BuscarConta(string usuario)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
 
-        // COLLATE NOCASE: ignora maiúsculas e minúsculas ("ADMIN" encontra "admin")
+        // COLLATE NOCASE: não liga pra maiúscula e minúscula ("ADMIN" acha "admin")
         comando.CommandText = @"
             SELECT login, nome, perfil, senha_salt, senha_hash, iteracoes
             FROM usuarios
             WHERE login = $login COLLATE NOCASE";
-        comando.Parameters.AddWithValue("$login", username);
+        comando.Parameters.AddWithValue("$login", usuario);
 
         using var leitor = comando.ExecuteReader();
         if (!leitor.Read())
-            return null; // nenhum usuário com esse login
+        {
+            return null; // não tem ninguém com esse login
+        }
 
-        return new RhAccount(
-            leitor.GetString(0),
-            leitor.GetString(1),
-            ConverterPerfil(leitor.GetString(2)),
-            leitor.GetString(3),
-            leitor.GetString(4),
-            leitor.GetInt32(5));
+        string login = leitor.GetString(0);
+        string nome = leitor.GetString(1);
+        PerfilDeAcesso perfil = ConverterPerfil(leitor.GetString(2));
+        string salt = leitor.GetString(3);
+        string hash = leitor.GetString(4);
+        int iteracoes = leitor.GetInt32(5);
+
+        return new Conta(login, nome, perfil, salt, hash, iteracoes);
     }
 
-    // Converte o perfil salvo no banco (texto em português) para o enum RhRole
-    // usado pelo sistema.
-    private static RhRole ConverterPerfil(string perfil)
+    // No banco o perfil fica escrito em português. Aqui eu transformo no tipo do sistema.
+    private static PerfilDeAcesso ConverterPerfil(string perfil)
     {
-        switch (perfil)
-        {
-            case "Administrador":
-                return RhRole.Administrator;
-            case "Recursos Humanos":
-                return RhRole.HumanResources;
-            default:
-                return RhRole.Manager; // valor padrão: perfil com menos permissão
-        }
+        if (perfil == "Administrador") return PerfilDeAcesso.Administrador;
+        if (perfil == "Recursos Humanos") return PerfilDeAcesso.RecursosHumanos;
+        return PerfilDeAcesso.Gestor; // se vier outra coisa, fica com o perfil que pode menos
     }
 }

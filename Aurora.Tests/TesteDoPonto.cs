@@ -8,20 +8,20 @@ namespace Aurora.Tests;
 //
 // Testes da minha parte: consulta por período, resumo, lançamento de falta e de atraso.
 // Cada cenário pede um repositório novo à função "criar", então um cenário nunca atrapalha o outro.
-// Os mesmos cenários rodam duas vezes: com a lista em memória (DemoRh) e com o banco SQLite,
+// Os mesmos cenários rodam duas vezes: com a lista em memória (DadosDeExemplo) e com o banco SQLite,
 // cada cenário num banco temporário novo, que não mexe no aurora.db do sistema.
-// A parte da tela (botões e janela do período) está no TestProgram.cs.
+// A parte da tela (botões e janela do período) está no ProgramaDeTestes.cs.
 // Se algum teste falhar, o método lança uma exceção com o nome do teste.
 internal static class TesteDoPonto
 {
-    // "Hoje" da demonstração, igual ao DemoRh.Today.
+    // "Hoje" da demonstração, igual ao DadosDeExemplo.Today.
     private static readonly DateTime Hoje = new(2026, 11, 13);
     private static readonly DateTime Segunda = new(2026, 11, 9);
     private const string Senha = "Aurora.demo26";
 
     public static void Rodar()
     {
-        var total = Executar("lista em memória", () => new DemoRh());
+        var total = Executar("lista em memória", () => new DadosDeExemplo());
         total += TestarComOBanco();
         Console.WriteLine($"Ponto e frequência (Clóvis): {total} testes passaram.");
     }
@@ -52,8 +52,8 @@ internal static class TesteDoPonto
             rh.LancarAtraso(102, Segunda.AddDays(-1), "08:20", "17:00", "", Hoje);
             var reaberto = Entrar(new RepositorioSqlite(caminho), "rh");
             var dia = reaberto.ConsultarPeriodo(Segunda.AddDays(-1), Segunda.AddDays(-1));
-            Verdade(dia.Count == 2 && dia.Any(item => item.Person == 101 && item.Status == "Falta" && item.In == "")
-                && dia.Any(item => item.Person == 102 && item.Status == "Atraso" && item.In == "08:20"),
+            Verdade(dia.Count == 2 && dia.Any(item => item.Matricula == 101 && item.Situacao == "Falta" && item.Entrada == "")
+                && dia.Any(item => item.Matricula == 102 && item.Situacao == "Atraso" && item.Entrada == "08:20"),
                 "[Ponto · banco SQLite] falta e atraso continuam salvos depois de reabrir o banco");
             return total + 1;
         }
@@ -65,7 +65,7 @@ internal static class TesteDoPonto
         }
     }
 
-    private static int Executar(string origem, Func<IRhRepository> criar)
+    private static int Executar(string origem, Func<IRepositorio> criar)
     {
         var testes = 0;
         void Teste(string nome, Action corpo)
@@ -116,10 +116,10 @@ internal static class TesteDoPonto
         Teste("registros em ordem de data e, no mesmo dia, de nome", () =>
         {
             var lista = Entrar(criar(), "rh").ConsultarPeriodo(Segunda, Hoje);
-            for (var i = 1; i < lista.Count; i++) Verdade(lista[i - 1].Day <= lista[i].Day, "datas fora de ordem");
-            var dia = lista.Where(item => item.Day == Hoje).ToArray();
+            for (var i = 1; i < lista.Count; i++) Verdade(lista[i - 1].Dia <= lista[i].Dia, "datas fora de ordem");
+            var dia = lista.Where(item => item.Dia == Hoje).ToArray();
             Igual(6, dia.Length);
-            Igual(105, dia[0].Person); // Beatriz Lemos vem primeiro em ordem alfabética
+            Igual(105, dia[0].Matricula); // Beatriz Lemos vem primeiro em ordem alfabética
         });
 
         Teste("um dia só devolve só aquele dia", () =>
@@ -146,8 +146,8 @@ internal static class TesteDoPonto
             var domingo = Segunda.AddDays(-1);
             rh.LancarFalta(101, domingo, "  Consulta médica comunicada  ", Hoje);
             var registro = rh.ConsultarPeriodo(domingo, domingo).Single();
-            Igual("Falta", registro.Status); Igual("", registro.In); Igual("", registro.Out);
-            Igual("Consulta médica comunicada", registro.Reason);
+            Igual("Falta", registro.Situacao); Igual("", registro.Entrada); Igual("", registro.Saida);
+            Igual("Consulta médica comunicada", registro.Motivo);
             var resumo = rh.ResumoDoPeriodo(domingo, domingo);
             Igual(1, resumo.Faltas); Igual(0.0, resumo.Comparecimento);
             Igual(31, rh.ResumoDoPeriodo(domingo, Hoje).Registros);
@@ -167,7 +167,7 @@ internal static class TesteDoPonto
             var dia = Segunda.AddDays(-3);
             rh.LancarAtraso(102, dia, "08:20", "17:00", "Trânsito", Hoje);
             var registro = rh.ConsultarPeriodo(dia, dia).Single();
-            Igual("Atraso", registro.Status); Igual("08:20", registro.In); Igual("17:00", registro.Out);
+            Igual("Atraso", registro.Situacao); Igual("08:20", registro.Entrada); Igual("17:00", registro.Saida);
             var resumo = rh.ResumoDoPeriodo(dia, dia);
             Igual(1, resumo.Atrasos); Igual(1.0, resumo.Comparecimento);
             Igual("8 h 40 min", FrequenciaDePonto.FormatarHoras(resumo.Horas));
@@ -200,7 +200,7 @@ internal static class TesteDoPonto
             Igual(0, rh.SemRegistro(Hoje).Count);
             var domingo = Segunda.AddDays(-1);
             Igual(6, rh.SemRegistro(domingo).Count);
-            Verdade(rh.SemRegistro(domingo).All(item => item.Status == "Ativo"), "só funcionários ativos");
+            Verdade(rh.SemRegistro(domingo).All(item => item.Situacao == "Ativo"), "só funcionários ativos");
             rh.LancarFalta(101, domingo, "", Hoje);
             Igual(5, rh.SemRegistro(domingo).Count);
             Verdade(rh.SemRegistro(domingo).All(item => item.Id != 101), "101 já tem registro");
@@ -219,9 +219,9 @@ internal static class TesteDoPonto
         Teste("sessão encerrada bloqueia consulta e lançamento", () =>
         {
             var repositorio = criar();
-            var sessao = new Authentication(new DemoAccounts()).SignIn("rh", Senha)!;
-            var rh = new RhService(repositorio, sessao);
-            sessao.SignOut();
+            var sessao = new Autenticacao(new ContasDeExemplo()).Entrar("rh", Senha)!;
+            var rh = new ServicoRh(repositorio, sessao);
+            sessao.Sair();
             Recusa(() => rh.ConsultarPeriodo(Segunda, Hoje), "Entre novamente");
             Recusa(() => rh.ResumoDoPeriodo(Segunda, Hoje), "Entre novamente");
             Recusa(() => rh.LancarFalta(101, Segunda.AddDays(-1), "", Hoje), "Entre novamente");
@@ -230,8 +230,8 @@ internal static class TesteDoPonto
         return testes;
     }
 
-    private static RhService Entrar(IRhRepository repositorio, string usuario) =>
-        new(repositorio, new Authentication(new DemoAccounts()).SignIn(usuario, Senha) ?? throw new InvalidOperationException("login falhou"));
+    private static ServicoRh Entrar(IRepositorio repositorio, string usuario) =>
+        new(repositorio, new Autenticacao(new ContasDeExemplo()).Entrar(usuario, Senha) ?? throw new InvalidOperationException("login falhou"));
 
     private static void Igual<T>(T esperado, T atual)
     {
@@ -244,11 +244,11 @@ internal static class TesteDoPonto
         if (!condicao) throw new InvalidOperationException(mensagem);
     }
 
-    // A operação precisa lançar RhRuleException, e a mensagem precisa conter o trecho esperado.
+    // A operação precisa lançar ErroDeRegra, e a mensagem precisa conter o trecho esperado.
     private static void Recusa(Action operacao, string trecho)
     {
         try { operacao(); }
-        catch (RhRuleException erro)
+        catch (ErroDeRegra erro)
         {
             if (!erro.Message.Contains(trecho, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException($"mensagem inesperada: \"{erro.Message}\" (esperava conter \"{trecho}\")");

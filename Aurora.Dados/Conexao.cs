@@ -2,21 +2,18 @@ using Microsoft.Data.Sqlite;
 
 namespace Aurora.Dados;
 
-// Conexao - camada de acesso aos dados
-// Abre a conexão com o banco SQLite. Usada por todas as classes de dados.
+// Abre a conexão com o banco SQLite. Todas as outras classes do banco usam essa.
 public static class Conexao
 {
     public static SqliteConnection Abrir(string caminhoDoBanco)
     {
-        var config = new SqliteConnectionStringBuilder
-        {
-            DataSource = caminhoDoBanco,
-            // Liga as chaves estrangeiras (no SQLite elas vêm desligadas).
-            // Assim o banco não deixa, por exemplo, apagar funcionário que tem ponto.
-            ForeignKeys = true
-        };
+        SqliteConnectionStringBuilder configuracao = new SqliteConnectionStringBuilder();
+        configuracao.DataSource = caminhoDoBanco;
+        // No SQLite as chaves estrangeiras vêm desligadas, então eu ligo aqui.
+        // Sem isso o banco deixaria apagar um funcionário que tem ponto.
+        configuracao.ForeignKeys = true;
 
-        var conexao = new SqliteConnection(config.ToString());
+        SqliteConnection conexao = new SqliteConnection(configuracao.ToString());
         conexao.Open();
         return conexao;
     }

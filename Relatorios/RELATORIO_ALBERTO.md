@@ -10,7 +10,7 @@ Fiquei com o **banco de dados**: modelar as tabelas e os relacionamentos, prepar
 - Escrevi o script de criação (`BancoDeDados/01_criar_tabelas.sql`), com chave primária, chave estrangeira, CHECK e índices.
 - Escrevi o script de dados fictícios (`BancoDeDados/02_dados_ficticios.sql`), com os mesmos funcionários e vagas da demonstração.
 - Fiz um script com consultas de exemplo usando JOIN (`BancoDeDados/03_consultas_uteis.sql`).
-- Criei o projeto `Aurora.Dados`, que implementa as interfaces que o Rickelmy deixou (`IRhRepository` e `IAccountDirectory`) usando o banco.
+- Criei o projeto `Aurora.Dados`, que implementa as interfaces que o Rickelmy deixou (`IRepositorio` e `IBuscaDeContas`) usando o banco.
 - Liguei o banco no `Program.cs`. Agora o que é cadastrado continua salvo quando o sistema é fechado.
 - Fiz os testes do banco (`Aurora.Tests/TesteDoBanco.cs`).
 
@@ -23,9 +23,9 @@ Os detalhes de cada tabela e das decisões que tomei estão em `BancoDeDados/LEI
 | `BancoDeDados/` (pasta toda) | Scripts SQL, diagrama, banco de exemplo e documentação |
 | `Aurora.Dados/` (projeto novo) | Camada de acesso aos dados |
 | `Aurora.Tests/TesteDoBanco.cs` | Testes do banco |
-| `Aurora.WinForms/Program.cs` | Troquei a `DemoRh` pelo `RepositorioSqlite` (as capturas de tela continuam com a demo) |
+| `Aurora.WinForms/Program.cs` | Troquei a `DadosDeExemplo` pelo `RepositorioSqlite`  |
 | `Aurora.WinForms/Aurora.WinForms.csproj` | Adicionei a referência ao `Aurora.Dados` |
-| `Aurora.Tests/TestProgram.cs` | Uma linha a mais, pra chamar os testes do banco |
+| `Aurora.Tests/ProgramaDeTestes.cs` | Uma linha a mais, pra chamar os testes do banco |
 | `Aurora.slnx` | Coloquei o projeto `Aurora.Dados` na solução |
 
 ## Como testei

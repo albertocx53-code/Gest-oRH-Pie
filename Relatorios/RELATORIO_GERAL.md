@@ -1,4 +1,4 @@
-![UniFacema](../site/img/unifacema.png)
+![UniFacema](imagens/unifacema.png)
 
 # Relatório do Projeto · Gestão de RH
 
@@ -25,9 +25,7 @@ O que o sistema faz:
 - agenda do RH;
 - folha de pagamento, com edição de lançamento;
 - painel com o resumo do dia;
-- tela "Sobre o projeto", com a equipe, o diagrama do banco, trechos de código e como rodar.
 
-![Painel do sistema](../site/img/tela_painel.png)
 
 ## 2. Organização da solução
 
@@ -35,8 +33,8 @@ A solução `Aurora.slnx` é dividida em quatro projetos, cada um com uma funç�
 
 | Projeto | Função |
 | --- | --- |
-| `Aurora.WinForms` | Telas do sistema (login, painel, funcionários, ponto, recrutamento, agenda, salários e sobre o projeto) |
-| `Aurora.Core` | Modelos, regras de negócio (`RhService`), login (`Authentication`) e as extensões de cada parte |
+| `Aurora.WinForms` | Telas do sistema (login, painel, funcionários, ponto, recrutamento, agenda e salários) |
+| `Aurora.Core` | Modelos, regras de negócio (`ServicoRh`), login (`Autenticacao`) e as extensões de cada parte |
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `Aurora.Tests` | Testes das regras de cada parte, em memória e no banco, e testes das telas |
 
@@ -44,12 +42,12 @@ O caminho de uma operação, da tela até o banco, é sempre o mesmo:
 
 ```
 Tela (Aurora.WinForms)
-  -> RhService e extensões (Aurora.Core): sessão, perfil e validações
-    -> IRhRepository
+  -> ServicoRh e extensões (Aurora.Core): sessão, perfil e validações
+    -> IRepositorio
       -> RepositorioSqlite (Aurora.Dados) -> aurora.db
 ```
 
-Como todas as partes passam pelo `RhService`, as regras de permissão valem para o sistema inteiro: o Gestor consulta, mas não grava nada, mesmo que tente.
+Como todas as partes passam pelo `ServicoRh`, as regras de permissão valem para o sistema inteiro: o Gestor consulta, mas não grava nada, mesmo que tente.
 
 ## 3. Divisão da equipe
 
@@ -69,24 +67,24 @@ Como todas as partes passam pelo `RhService`, as regras de permissão valem para
 
 - Montou as telas do sistema: login, painel e o menu lateral com todas as áreas, no visual escuro do Aurora.
 - Criou o login por usuário e senha. A senha é guardada como hash PBKDF2 com SHA-256 e salt por conta, nunca aberta.
-- Centralizou as permissões no `RhService`. Administrador e RH alteram os registros; o Gestor só consulta e não vê salários.
+- Centralizou as permissões no `ServicoRh`. Administrador e RH alteram os registros; o Gestor só consulta e não vê salários.
 - Levou as validações para o serviço: impede excluir funcionário com histórico, confere horários e ponto duplicado, bloqueia inscrição em vaga encerrada e valida os valores da folha.
-- Deixou prontas as interfaces `IRhRepository` e `IAccountDirectory`, que permitiram ligar o banco sem mudar as telas.
-- Fez o primeiro conjunto de testes (`TestProgram.cs`), que abre as telas e clica nos botões.
+- Deixou prontas as interfaces `IRepositorio` e `IBuscaDeContas`, que permitiram ligar o banco sem mudar as telas.
+- Fez o primeiro conjunto de testes (`ProgramaDeTestes.cs`), que abre as telas e clica nos botões.
 
 Segundo o relatório dele, a parte de interface, que na divisão da equipe era do Paulo Victor, foi concluída por ele junto com o back-end.
 
-Arquivos principais: `Aurora.Core/RhService.cs`, `Authentication.cs`, `Models.cs`, `IRhRepository.cs`, `Aurora.WinForms/AuroraForm.cs`, `AuroraForm.Modules.cs`, `AuroraStyle.cs`, `LoginForm.cs` e `EntryForm.cs`.
+Arquivos principais: `Aurora.Core/ServicoRh.cs`, `Autenticacao.cs`, `Modelos.cs`, `IRepositorio.cs`, `Aurora.WinForms/TelaPrincipal.cs`, `TelaPrincipal.Modulos.cs`, `Estilo.cs`, `TelaDeLogin.cs` e `JanelaDeCadastro.cs`.
 
 ### 4.2 Alberto · Banco de dados
 
 - Modelou 8 tabelas no SQLite: `usuarios`, `departamentos`, `funcionarios`, `ponto`, `folha_pagamento`, `vagas`, `candidatos` e `agenda`.
 - Escreveu o script de criação, com chaves primárias, chaves estrangeiras, CHECK e índices, e o script de dados fictícios com os mesmos funcionários e vagas da demonstração.
 - Escreveu um script de consultas de exemplo com JOIN.
-- Criou o projeto `Aurora.Dados`, que implementa `IRhRepository` e `IAccountDirectory` usando o banco. Os valores vão sempre por parâmetro, o que protege contra SQL Injection.
+- Criou o projeto `Aurora.Dados`, que implementa `IRepositorio` e `IBuscaDeContas` usando o banco. Os valores vão sempre por parâmetro, o que protege contra SQL Injection.
 - Ligou o banco no `Program.cs`: o arquivo `aurora.db` é criado sozinho na primeira execução, e o que é cadastrado continua salvo depois de fechar o sistema.
 - Fez os testes do banco, que repetem em cima do SQLite os mesmos casos testados em memória.
-- Organizou a versão web, o site de apresentação, a tela "Sobre o projeto" e a integração das partes no repositório.
+- Juntou as partes da equipe no repositório e deixou os testes de todas as partes rodando juntos.
 
 Arquivos principais: pasta `BancoDeDados` (scripts 01, 02 e 03, diagrama e banco de exemplo), pasta `Aurora.Dados` e `Aurora.Tests/TesteDoBanco.cs`.
 
@@ -98,9 +96,8 @@ Arquivos principais: pasta `BancoDeDados` (scripts 01, 02 e 03, diagrama e banco
 - Fez o campo Cargo sugerir os cargos que já existem, para evitar o mesmo cargo escrito de jeitos diferentes.
 - Escreveu as consultas SQL do cadastro e os testes da parte dele, em memória e no banco.
 
-Arquivos principais: `Aurora.Core/CadastroDeFuncionarios.cs`, `Aurora.WinForms/AuroraForm.Funcionarios.cs`, `FichaDoFuncionarioForm.cs`, `BancoDeDados/04_consultas_funcionarios.sql` e `Aurora.Tests/TesteDosFuncionarios.cs`.
+Arquivos principais: `Aurora.Core/CadastroDeFuncionarios.cs`, `Aurora.WinForms/TelaPrincipal.Funcionarios.cs`, `JanelaDaFicha.cs`, `BancoDeDados/04_consultas_funcionarios.sql` e `Aurora.Tests/TesteDosFuncionarios.cs`.
 
-![Ficha do funcionário](../site/img/telas/jef_ficha.png)
 
 ### 4.4 Clóvis · Ponto e frequência
 
@@ -108,9 +105,8 @@ Arquivos principais: `Aurora.Core/CadastroDeFuncionarios.cs`, `Aurora.WinForms/A
 - Criou a janela **Consultar período**, com a frequência de qualquer intervalo de até 366 dias, filtros por funcionário e ocorrência, totais do período e totais de cada funcionário.
 - Escreveu as consultas SQL do ponto e 31 testes da parte dele.
 
-Arquivos principais: `Aurora.Core/FrequenciaDePonto.cs`, `Aurora.WinForms/AuroraForm.Ponto.cs`, `FrequenciaPorPeriodoForm.cs`, `BancoDeDados/05_consultas_ponto.sql` e `Aurora.Tests/TesteDoPonto.cs`.
+Arquivos principais: `Aurora.Core/FrequenciaDePonto.cs`, `Aurora.WinForms/TelaPrincipal.Ponto.cs`, `JanelaDeFrequencia.cs`, `BancoDeDados/05_consultas_ponto.sql` e `Aurora.Tests/TesteDoPonto.cs`.
 
-![Frequência por período](../site/img/telas/clo_periodo.png)
 
 ### 4.5 Kerlon · Recrutamento
 
@@ -119,9 +115,8 @@ Arquivos principais: `Aurora.Core/FrequenciaDePonto.cs`, `Aurora.WinForms/Aurora
 - Criou **Avançar etapa**, que leva a candidatura para a etapa seguinte, e **Mudar de vaga**, que passa a candidatura para outra vaga aberta sem perder a etapa.
 - Impediu que o mesmo nome se inscreva duas vezes na mesma vaga.
 
-Arquivos principais: `Aurora.Core/Recrutamento.cs` e `Aurora.WinForms/AuroraForm.Recrutamento.cs`. Os testes da parte dele estão em `Aurora.Tests/TesteDoRecrutamento.cs`.
+Arquivos principais: `Aurora.Core/Recrutamento.cs` e `Aurora.WinForms/TelaPrincipal.Recrutamento.cs`. Os testes da parte dele estão em `Aurora.Tests/TesteDoRecrutamento.cs`.
 
-![Recrutamento com o funil de etapas](../site/img/telas/ker_recrutamento.png)
 
 ### 4.6 Cleberson Dias · Salários
 
@@ -129,9 +124,8 @@ Arquivos principais: `Aurora.Core/Recrutamento.cs` e `Aurora.WinForms/AuroraForm
 - Na edição, funcionário e competência ficam travados, porque são a chave do lançamento; só salário, bônus e descontos mudam. O duplo clique na linha também abre a edição.
 - Escreveu os testes da folha, que rodam os mesmos casos na lista em memória e no banco SQLite e conferem que os lançamentos continuam salvos depois de reabrir o banco.
 
-Arquivos principais: `Aurora.WinForms/AuroraForm.Modules.cs` (tela de Salários) e `Aurora.Tests/TesteSalarios.cs`. No código, os comentários dele estão marcados com `Diaz:`.
+Arquivos principais: `Aurora.WinForms/TelaPrincipal.Modulos.cs` (tela de Salários) e `Aurora.Tests/TesteSalarios.cs`. No código, os comentários dele estão marcados com `Diaz:`.
 
-![Editar lançamento da folha](../site/img/telas/cle_editar.png)
 
 ### 4.7 Paulo Victor · Interface
 
@@ -141,7 +135,7 @@ Na divisão da equipe, Paulo Victor ficou com a interface. Até a data deste rel
 
 O banco fica em um único arquivo (`aurora.db`), sem precisar instalar servidor. Ele é criado na primeira execução pelos scripts da pasta `BancoDeDados`.
 
-![Diagrama do banco de dados](../site/img/diagrama_ER.png)
+![Diagrama do banco de dados](../BancoDeDados/diagrama_ER.png)
 
 | Tabela | O que guarda |
 | --- | --- |
@@ -166,12 +160,12 @@ Dados fictícios: 8 funcionários, 30 registros de ponto e 12 lançamentos de fo
 
 | Conceito | Onde aparece |
 | --- | --- |
-| Classes | Cada parte é uma classe com uma função só: `RhService` cuida das regras, `RepositorioSqlite` do banco, `LoginForm` da tela de entrada |
-| Herança | As telas herdam do Windows Forms: `LoginForm : Form`, `FichaDoFuncionarioForm : Form` |
+| Classes | Cada parte é uma classe com uma função só: `ServicoRh` cuida das regras, `RepositorioSqlite` do banco, `TelaDeLogin` da tela de entrada |
+| Herança | As telas herdam do Windows Forms: `TelaDeLogin : Form`, `JanelaDaFicha : Form` |
 | Encapsulamento | As listas ficam privadas dentro do repositório; a tela só fala com o serviço, nunca direto com os dados |
-| Polimorfismo | `DemoRh` (memória) e `RepositorioSqlite` (banco) implementam a mesma interface `IRhRepository`, e as telas funcionam com qualquer um dos dois |
-| Interfaces | `IRhRepository` e `IAccountDirectory` separam as regras da forma de guardar os dados |
-| Métodos de extensão | Jefferson, Clóvis e Kerlon acrescentaram funções ao `RhService` em arquivos próprios, sem mudar o serviço original |
+| Polimorfismo | `DadosDeExemplo` (memória) e `RepositorioSqlite` (banco) implementam a mesma interface `IRepositorio`, e as telas funcionam com qualquer um dos dois |
+| Interfaces | `IRepositorio` e `IBuscaDeContas` separam as regras da forma de guardar os dados |
+| Métodos de extensão | Jefferson, Clóvis e Kerlon acrescentaram funções ao `ServicoRh` em arquivos próprios, sem mudar o serviço original |
 
 ## 7. Testes
 
@@ -184,17 +178,15 @@ O projeto `Aurora.Tests` roda as regras de cada parte duas vezes: uma com a list
 | `TesteSalarios.cs` | Folha de pagamento, em memória e no banco |
 | `TesteDosFuncionarios.cs` | Ficha, cargos, inativar e tempo de casa |
 | `TesteDoRecrutamento.cs` | Funil, nome repetido, avançar etapa, mudar de vaga e permissões |
-| `TestProgram.cs` | Fluxo das telas: login, cadastro, ponto, recrutamento, agenda, salários e sobre o projeto |
+| `ProgramaDeTestes.cs` | Fluxo das telas: login, cadastro, ponto, recrutamento, agenda e salários |
 
 Resultado da última execução das regras: todas as partes aprovadas (banco, ponto, salários, funcionários e recrutamento).
 
-## 8. Versão web e materiais
+## 8. Código
 
-Além do programa Windows Forms, o grupo publicou:
+O código do projeto está no GitHub: https://github.com/albertocx53-code/Gest-oRH-Pie
 
-- **Site do projeto:** https://gestao-rh-teal.vercel.app, com a apresentação da equipe, das partes, do banco e do código;
-- **Versão web do sistema:** https://gestao-rh-teal.vercel.app/sistema/, com as mesmas telas e regras, rodando o mesmo banco SQLite no navegador;
-- **Código no GitHub:** https://github.com/albertocx53-code/Gest-oRH-Pie
+Os nomes de classes, métodos e variáveis estão em português, e os comentários explicam cada parte com palavras simples. Os comentários de cada integrante começam com o nome dele (por exemplo `Jefferson:` ou `Kerlon:`), para facilitar a busca com Ctrl+Shift+F no Visual Studio.
 
 ## 9. Como executar
 

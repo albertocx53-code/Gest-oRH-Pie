@@ -26,25 +26,17 @@ Professor: Marcos Gomes da Silva Rocha
 - Agenda do RH
 - Folha de pagamento, com edição de lançamento
 - Painel com o resumo do dia
-- Sobre o projeto: equipe, diagrama do banco, trechos de código de cada parte, POO e como rodar (as imagens abrem ampliadas ao clicar)
 
 ## Estrutura
 
 | Pasta | Conteúdo |
 | --- | --- |
-| `Aurora.Core` | Modelos, regras de negócio (`RhService`), login (`Authentication`), frequência do ponto (`FrequenciaDePonto`) cadastro de funcionários (`CadastroDeFuncionarios`) e recrutamento (`Recrutamento`) |
-| `Aurora.WinForms` | Telas do sistema (a pasta `Imagens` tem as figuras da tela Sobre o projeto) |
+| `Aurora.Core` | Modelos, regras de negócio (`ServicoRh`), login (`Autenticacao`), frequência do ponto (`FrequenciaDePonto`) cadastro de funcionários (`CadastroDeFuncionarios`) e recrutamento (`Recrutamento`) |
+| `Aurora.WinForms` | Telas do sistema |
 | `Aurora.Dados` | Camada de acesso ao banco SQLite |
 | `BancoDeDados` | Scripts SQL, diagrama das tabelas e banco de exemplo |
 | `Aurora.Tests` | Testes de cada parte (banco, ponto, salários, funcionários e recrutamento) e das telas |
 | `Relatorios` | Relatório geral da equipe (`RELATORIO_GERAL.md` e `.pdf`) e os relatórios de entrega de cada integrante |
-| `site` | Página de apresentação e versão web do sistema (publicada no Vercel) |
-
-## Versão web
-
-A pasta `site/sistema` tem uma versão do sistema que roda no navegador, com as mesmas telas e regras. Ela usa o mesmo banco SQLite e os mesmos scripts SQL (biblioteca sql.js), e os dados ficam salvos no navegador.
-
-Publicada em: https://gestao-rh-teal.vercel.app/sistema/
 
 ## Como rodar (Windows)
 

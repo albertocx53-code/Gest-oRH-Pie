@@ -4,29 +4,20 @@ using Microsoft.Data.Sqlite;
 
 namespace Aurora.Dados;
 
-// RepositorioSqlite - camada de acesso aos dados
-//
-// Camada de acesso aos dados. Lê e grava as informações no arquivo aurora.db.
-// Antes o sistema usava uma lista em memória (DemoRh) e perdia tudo ao fechar.
-//
-// Implementa a interface IRhRepository, então as telas e o RhService
-// continuam chamando os mesmos métodos, sem precisar de mudança.
-//
-// Divisão de responsabilidades:
-//   RhService         -> permissões e regras de negócio
-//   RepositorioSqlite -> leitura e gravação no banco
-public class RepositorioSqlite : IRhRepository
+// Classe que lê e grava os dados no banco (arquivo aurora.db).
+// Antes o sistema guardava tudo numa lista na memória (DadosDeExemplo) e perdia tudo ao fechar.
+// Ela segue a interface IRepositorio, então as telas continuam iguais.
+public class RepositorioSqlite : IRepositorio
 {
-    // O SQLite não tem tipo próprio para data, então as datas são salvas como texto
-    // nestes formatos.
+    // O SQLite não tem tipo de data, então a data é guardada como texto nesses formatos
     private const string FormatoDia = "yyyy-MM-dd";
     private const string FormatoDiaHora = "yyyy-MM-dd HH:mm";
 
-    // Código de erro do SQLite quando uma restrição da tabela é violada
-    // (chave primária repetida, chave estrangeira, CHECK).
+    // Número do erro que o SQLite dá quando uma regra da tabela é quebrada
+    // (chave repetida, chave estrangeira ou CHECK)
     private const int ErroDeRestricao = 19;
 
-    private readonly string caminhoDoBanco;
+    private string caminhoDoBanco;
 
     public RepositorioSqlite(string caminhoDoBanco)
     {
@@ -34,17 +25,18 @@ public class RepositorioSqlite : IRhRepository
     }
 
 
-    // ---------- LEITURAS (SELECT) ----------
-    // Todas as consultas usam ORDER BY para a lista vir sempre na mesma ordem.
+    // ===== LEITURAS (SELECT) =====
+    // Todas usam ORDER BY para a lista vir sempre na mesma ordem.
 
-    public IReadOnlyList<Employee> Employees
+    public IReadOnlyList<Funcionario> Funcionarios
     {
         get
         {
-            var lista = new List<Employee>();
+            List<Funcionario> lista = new List<Funcionario>();
             using var conexao = Conexao.Abrir(caminhoDoBanco);
             using var comando = conexao.CreateCommand();
-            // JOIN com departamentos para trazer o nome do setor, que é o que a tela mostra
+
+            // JOIN com departamentos para pegar o nome do setor
             comando.CommandText = @"
                 SELECT f.matricula, f.nome, f.cargo, d.nome, f.situacao, f.data_admissao
                 FROM funcionarios f
@@ -54,23 +46,24 @@ public class RepositorioSqlite : IRhRepository
             using var leitor = comando.ExecuteReader();
             while (leitor.Read())
             {
-                lista.Add(new Employee(
-                    leitor.GetInt32(0),
-                    leitor.GetString(1),
-                    leitor.GetString(2),
-                    leitor.GetString(3),
-                    leitor.GetString(4),
-                    LerDia(leitor.GetString(5))));
+                int matricula = leitor.GetInt32(0);
+                string nome = leitor.GetString(1);
+                string cargo = leitor.GetString(2);
+                string departamento = leitor.GetString(3);
+                string situacao = leitor.GetString(4);
+                DateTime admissao = LerDia(leitor.GetString(5));
+
+                lista.Add(new Funcionario(matricula, nome, cargo, departamento, situacao, admissao));
             }
             return lista;
         }
     }
 
-    public IReadOnlyList<Attendance> Punches
+    public IReadOnlyList<RegistroDePonto> Pontos
     {
         get
         {
-            var lista = new List<Attendance>();
+            List<RegistroDePonto> lista = new List<RegistroDePonto>();
             using var conexao = Conexao.Abrir(caminhoDoBanco);
             using var comando = conexao.CreateCommand();
             comando.CommandText = @"
@@ -81,25 +74,25 @@ public class RepositorioSqlite : IRhRepository
             using var leitor = comando.ExecuteReader();
             while (leitor.Read())
             {
-                // Na falta, entrada, saída e motivo ficam NULL no banco.
-                // A tela espera texto vazio, por isso NULL vira "".
-                lista.Add(new Attendance(
-                    leitor.GetInt32(0),
-                    LerDia(leitor.GetString(1)),
-                    TextoOuVazio(leitor, 2),
-                    TextoOuVazio(leitor, 3),
-                    leitor.GetString(4),
-                    TextoOuVazio(leitor, 5)));
+                int matricula = leitor.GetInt32(0);
+                DateTime dia = LerDia(leitor.GetString(1));
+                // na falta, entrada, saída e motivo ficam vazios (NULL) no banco
+                string entrada = TextoOuVazio(leitor, 2);
+                string saida = TextoOuVazio(leitor, 3);
+                string situacao = leitor.GetString(4);
+                string motivo = TextoOuVazio(leitor, 5);
+
+                lista.Add(new RegistroDePonto(matricula, dia, entrada, saida, situacao, motivo));
             }
             return lista;
         }
     }
 
-    public IReadOnlyList<Vacancy> Vacancies
+    public IReadOnlyList<Vaga> Vagas
     {
         get
         {
-            var lista = new List<Vacancy>();
+            List<Vaga> lista = new List<Vaga>();
             using var conexao = Conexao.Abrir(caminhoDoBanco);
             using var comando = conexao.CreateCommand();
             comando.CommandText = @"
@@ -111,17 +104,22 @@ public class RepositorioSqlite : IRhRepository
             using var leitor = comando.ExecuteReader();
             while (leitor.Read())
             {
-                lista.Add(new Vacancy(leitor.GetInt32(0), leitor.GetString(1), leitor.GetString(2), leitor.GetString(3)));
+                int id = leitor.GetInt32(0);
+                string titulo = leitor.GetString(1);
+                string departamento = leitor.GetString(2);
+                string situacao = leitor.GetString(3);
+
+                lista.Add(new Vaga(id, titulo, departamento, situacao));
             }
             return lista;
         }
     }
 
-    public IReadOnlyList<Candidate> Candidates
+    public IReadOnlyList<Candidato> Candidatos
     {
         get
         {
-            var lista = new List<Candidate>();
+            List<Candidato> lista = new List<Candidato>();
             using var conexao = Conexao.Abrir(caminhoDoBanco);
             using var comando = conexao.CreateCommand();
             comando.CommandText = "SELECT id, nome, vaga_id, etapa FROM candidatos ORDER BY id";
@@ -129,17 +127,22 @@ public class RepositorioSqlite : IRhRepository
             using var leitor = comando.ExecuteReader();
             while (leitor.Read())
             {
-                lista.Add(new Candidate(leitor.GetInt32(0), leitor.GetString(1), leitor.GetInt32(2), leitor.GetString(3)));
+                int id = leitor.GetInt32(0);
+                string nome = leitor.GetString(1);
+                int vaga = leitor.GetInt32(2);
+                string etapa = leitor.GetString(3);
+
+                lista.Add(new Candidato(id, nome, vaga, etapa));
             }
             return lista;
         }
     }
 
-    public IReadOnlyList<Payroll> Pay
+    public IReadOnlyList<LancamentoDaFolha> Folhas
     {
         get
         {
-            var lista = new List<Payroll>();
+            List<LancamentoDaFolha> lista = new List<LancamentoDaFolha>();
             using var conexao = Conexao.Abrir(caminhoDoBanco);
             using var comando = conexao.CreateCommand();
             comando.CommandText = @"
@@ -150,22 +153,23 @@ public class RepositorioSqlite : IRhRepository
             using var leitor = comando.ExecuteReader();
             while (leitor.Read())
             {
-                lista.Add(new Payroll(
-                    leitor.GetInt32(0),
-                    LerDia(leitor.GetString(1)),
-                    LerDinheiro(leitor, 2),
-                    LerDinheiro(leitor, 3),
-                    LerDinheiro(leitor, 4)));
+                int matricula = leitor.GetInt32(0);
+                DateTime competencia = LerDia(leitor.GetString(1));
+                decimal salario = LerDinheiro(leitor, 2);
+                decimal bonus = LerDinheiro(leitor, 3);
+                decimal desconto = LerDinheiro(leitor, 4);
+
+                lista.Add(new LancamentoDaFolha(matricula, competencia, salario, bonus, desconto));
             }
             return lista;
         }
     }
 
-    public IReadOnlyList<Appointment> Agenda
+    public IReadOnlyList<Compromisso> Agenda
     {
         get
         {
-            var lista = new List<Appointment>();
+            List<Compromisso> lista = new List<Compromisso>();
             using var conexao = Conexao.Abrir(caminhoDoBanco);
             using var comando = conexao.CreateCommand();
             comando.CommandText = "SELECT titulo, data_hora, categoria FROM agenda ORDER BY data_hora, id";
@@ -173,27 +177,29 @@ public class RepositorioSqlite : IRhRepository
             using var leitor = comando.ExecuteReader();
             while (leitor.Read())
             {
-                var quando = DateTime.ParseExact(leitor.GetString(1), FormatoDiaHora, CultureInfo.InvariantCulture);
-                lista.Add(new Appointment(leitor.GetString(0), quando, leitor.GetString(2)));
+                string titulo = leitor.GetString(0);
+                DateTime quando = DateTime.ParseExact(leitor.GetString(1), FormatoDiaHora, CultureInfo.InvariantCulture);
+                string categoria = leitor.GetString(2);
+
+                lista.Add(new Compromisso(titulo, quando, categoria));
             }
             return lista;
         }
     }
 
 
-    // ---------- GRAVAÇÕES (INSERT / UPDATE / DELETE) ----------
-    // Os valores são passados por parâmetros ($nome, $cargo...) e não juntando texto
-    // no SQL. Isso evita erro com nomes que têm apóstrofo (ex.: D'Ávila)
-    // e protege contra SQL Injection.
+    // ===== GRAVAÇÕES (INSERT, UPDATE e DELETE) =====
+    // Os valores vão por parâmetro ($nome, $cargo...) e não colados no texto do SQL.
+    // Assim não dá erro com nome que tem apóstrofo (ex.: D'Ávila) e evita SQL Injection.
 
-    public void SaveEmployee(Employee employee)
+    public void SalvarFuncionario(Funcionario funcionario)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
 
-        if (employee.Id == 0)
+        if (funcionario.Id == 0)
         {
-            // Id 0 = funcionário novo. A matrícula é gerada pelo banco (AUTOINCREMENT).
+            // Id 0 = funcionário novo. A matrícula é o banco que gera (AUTOINCREMENT).
             comando.CommandText = @"
                 INSERT INTO funcionarios (nome, cargo, departamento_id, situacao, data_admissao)
                 VALUES ($nome, $cargo,
@@ -202,6 +208,7 @@ public class RepositorioSqlite : IRhRepository
         }
         else
         {
+            // funcionário que já existe: atualiza os dados
             comando.CommandText = @"
                 UPDATE funcionarios
                 SET nome = $nome,
@@ -210,38 +217,37 @@ public class RepositorioSqlite : IRhRepository
                     situacao = $situacao,
                     data_admissao = $admissao
                 WHERE matricula = $matricula";
-            comando.Parameters.AddWithValue("$matricula", employee.Id);
+            comando.Parameters.AddWithValue("$matricula", funcionario.Id);
         }
 
-        comando.Parameters.AddWithValue("$nome", employee.Name);
-        comando.Parameters.AddWithValue("$cargo", employee.Role);
-        comando.Parameters.AddWithValue("$departamento", employee.Team);
-        comando.Parameters.AddWithValue("$situacao", employee.Status);
-        comando.Parameters.AddWithValue("$admissao", EscreverDia(employee.Started));
+        comando.Parameters.AddWithValue("$nome", funcionario.Nome);
+        comando.Parameters.AddWithValue("$cargo", funcionario.Cargo);
+        comando.Parameters.AddWithValue("$departamento", funcionario.Departamento);
+        comando.Parameters.AddWithValue("$situacao", funcionario.Situacao);
+        comando.Parameters.AddWithValue("$admissao", EscreverDia(funcionario.Admissao));
 
         Executar(comando, "Não foi possível salvar o funcionário. Confira o departamento e a situação.");
     }
 
-    public void DeleteEmployee(int id)
+    public void ExcluirFuncionario(int id)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
         comando.CommandText = "DELETE FROM funcionarios WHERE matricula = $matricula";
         comando.Parameters.AddWithValue("$matricula", id);
 
-        // O RhService já verifica isso antes, mas o banco também bloqueia
-        // por causa do ON DELETE RESTRICT.
+        // Se o funcionário tiver ponto ou folha, o banco não deixa apagar (ON DELETE RESTRICT)
         Executar(comando, "Este cadastro tem registros de ponto ou salário. Você pode mudar a situação para Inativo.");
     }
 
-    public void SaveAttendance(Attendance record, bool edit)
+    public void SalvarPonto(RegistroDePonto registro, bool editar)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
 
-        if (edit)
+        if (editar)
         {
-            // Na edição, matrícula e dia (a chave) não mudam, só os outros campos.
+            // na edição, a matrícula e o dia não mudam, só o resto
             comando.CommandText = @"
                 UPDATE ponto
                 SET entrada = $entrada, saida = $saida, situacao = $situacao, motivo = $motivo
@@ -254,23 +260,23 @@ public class RepositorioSqlite : IRhRepository
                 VALUES ($matricula, $dia, $entrada, $saida, $situacao, $motivo)";
         }
 
-        comando.Parameters.AddWithValue("$matricula", record.Person);
-        comando.Parameters.AddWithValue("$dia", EscreverDia(record.Day));
-        comando.Parameters.AddWithValue("$entrada", VazioViraNull(record.In));
-        comando.Parameters.AddWithValue("$saida", VazioViraNull(record.Out));
-        comando.Parameters.AddWithValue("$situacao", record.Status);
-        comando.Parameters.AddWithValue("$motivo", VazioViraNull(record.Reason));
+        comando.Parameters.AddWithValue("$matricula", registro.Matricula);
+        comando.Parameters.AddWithValue("$dia", EscreverDia(registro.Dia));
+        comando.Parameters.AddWithValue("$entrada", VazioViraNull(registro.Entrada));
+        comando.Parameters.AddWithValue("$saida", VazioViraNull(registro.Saida));
+        comando.Parameters.AddWithValue("$situacao", registro.Situacao);
+        comando.Parameters.AddWithValue("$motivo", VazioViraNull(registro.Motivo));
 
-        // A chave (matricula, dia) impede dois registros de ponto no mesmo dia.
+        // A chave (matricula, dia) não deixa ter dois pontos no mesmo dia
         Executar(comando, "Já existe ponto nesse dia. Use Editar registro para alterá-lo.");
     }
 
-    public void SaveVacancy(Vacancy vacancy)
+    public void SalvarVaga(Vaga vaga)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
 
-        if (vacancy.Id == 0)
+        if (vaga.Id == 0)
         {
             comando.CommandText = @"
                 INSERT INTO vagas (titulo, departamento_id, situacao)
@@ -284,118 +290,132 @@ public class RepositorioSqlite : IRhRepository
                     departamento_id = (SELECT id FROM departamentos WHERE nome = $departamento),
                     situacao = $situacao
                 WHERE id = $id";
-            comando.Parameters.AddWithValue("$id", vacancy.Id);
+            comando.Parameters.AddWithValue("$id", vaga.Id);
         }
 
-        comando.Parameters.AddWithValue("$titulo", vacancy.Title);
-        comando.Parameters.AddWithValue("$departamento", vacancy.Team);
-        comando.Parameters.AddWithValue("$situacao", vacancy.Status);
+        comando.Parameters.AddWithValue("$titulo", vaga.Titulo);
+        comando.Parameters.AddWithValue("$departamento", vaga.Departamento);
+        comando.Parameters.AddWithValue("$situacao", vaga.Situacao);
 
         Executar(comando, "Não foi possível salvar a vaga. Confira o departamento.");
     }
 
-    public void SaveCandidate(Candidate candidate)
+    public void SalvarCandidato(Candidato candidato)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
 
-        if (candidate.Id == 0)
+        if (candidato.Id == 0)
         {
             comando.CommandText = "INSERT INTO candidatos (nome, vaga_id, etapa) VALUES ($nome, $vaga, $etapa)";
         }
         else
         {
             comando.CommandText = "UPDATE candidatos SET nome = $nome, vaga_id = $vaga, etapa = $etapa WHERE id = $id";
-            comando.Parameters.AddWithValue("$id", candidate.Id);
+            comando.Parameters.AddWithValue("$id", candidato.Id);
         }
 
-        comando.Parameters.AddWithValue("$nome", candidate.Name);
-        comando.Parameters.AddWithValue("$vaga", candidate.Vacancy);
-        comando.Parameters.AddWithValue("$etapa", candidate.Stage);
+        comando.Parameters.AddWithValue("$nome", candidato.Nome);
+        comando.Parameters.AddWithValue("$vaga", candidato.VagaId);
+        comando.Parameters.AddWithValue("$etapa", candidato.Etapa);
 
         Executar(comando, "Não foi possível salvar a candidatura. Confira a vaga escolhida.");
     }
 
-    public void SavePayroll(Payroll payroll)
+    public void SalvarFolha(LancamentoDaFolha lancamento)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
 
-        // INSERT OR REPLACE: se já existir lançamento da pessoa nesse mês, substitui;
-        // se não existir, cria um novo.
+        // INSERT OR REPLACE: se a pessoa já tem lançamento nesse mês, ele é trocado.
+        // Se não tem, cria um novo.
         comando.CommandText = @"
             INSERT OR REPLACE INTO folha_pagamento (matricula, competencia, salario_base, bonus, desconto)
             VALUES ($matricula, $competencia, $base, $bonus, $desconto)";
 
-        // A competência é sempre o dia 1 do mês.
-        var primeiroDiaDoMes = new DateTime(payroll.Month.Year, payroll.Month.Month, 1);
+        // a competência é sempre guardada como o dia 1 do mês
+        DateTime primeiroDiaDoMes = new DateTime(lancamento.Competencia.Year, lancamento.Competencia.Month, 1);
 
-        comando.Parameters.AddWithValue("$matricula", payroll.Person);
+        comando.Parameters.AddWithValue("$matricula", lancamento.Matricula);
         comando.Parameters.AddWithValue("$competencia", EscreverDia(primeiroDiaDoMes));
-        comando.Parameters.AddWithValue("$base", (double)payroll.Base);
-        comando.Parameters.AddWithValue("$bonus", (double)payroll.Bonus);
-        comando.Parameters.AddWithValue("$desconto", (double)payroll.Discount);
+        comando.Parameters.AddWithValue("$base", (double)lancamento.Salario);
+        comando.Parameters.AddWithValue("$bonus", (double)lancamento.Bonus);
+        comando.Parameters.AddWithValue("$desconto", (double)lancamento.Desconto);
 
         Executar(comando, "Não foi possível salvar a folha. Confira o funcionário e os valores.");
     }
 
-    public void AddAppointment(Appointment appointment)
+    public void AdicionarCompromisso(Compromisso compromisso)
     {
         using var conexao = Conexao.Abrir(caminhoDoBanco);
         using var comando = conexao.CreateCommand();
         comando.CommandText = "INSERT INTO agenda (titulo, data_hora, categoria) VALUES ($titulo, $quando, $categoria)";
-        comando.Parameters.AddWithValue("$titulo", appointment.Title);
-        comando.Parameters.AddWithValue("$quando", appointment.Time.ToString(FormatoDiaHora, CultureInfo.InvariantCulture));
-        comando.Parameters.AddWithValue("$categoria", appointment.Category);
+        comando.Parameters.AddWithValue("$titulo", compromisso.Titulo);
+        comando.Parameters.AddWithValue("$quando", compromisso.DataHora.ToString(FormatoDiaHora, CultureInfo.InvariantCulture));
+        comando.Parameters.AddWithValue("$categoria", compromisso.Categoria);
 
         Executar(comando, "Não foi possível salvar o compromisso. Confira a categoria.");
     }
 
 
-    // ---------- MÉTODOS AUXILIARES ----------
+    // ===== MÉTODOS DE AJUDA =====
 
-    // Executa o comando. Se o banco recusar por alguma restrição, troca o erro
-    // do SQLite por uma mensagem que o usuário entende.
-    // (RhRuleException é a exceção que as telas já sabem mostrar)
-    private static void Executar(SqliteCommand comando, string mensagemSeDerErro)
+    // Roda o comando no banco. Se o banco recusar por causa de alguma regra,
+    // mostra uma mensagem em português no lugar do erro do SQLite.
+    // (a tela já sabe mostrar a ErroDeRegra)
+    private static void Executar(SqliteCommand comando, string mensagemDeErro)
     {
         try
         {
             comando.ExecuteNonQuery();
         }
-        catch (SqliteException erro) when (erro.SqliteErrorCode == ErroDeRestricao)
+        catch (SqliteException erro)
         {
-            throw new RhRuleException(mensagemSeDerErro);
+            if (erro.SqliteErrorCode == ErroDeRestricao)
+            {
+                throw new ErroDeRegra(mensagemDeErro);
+            }
+            throw; // outro tipo de erro: deixa passar
         }
     }
 
+    // transforma o texto "2026-11-13" em data
     private static DateTime LerDia(string texto)
     {
         return DateTime.ParseExact(texto, FormatoDia, CultureInfo.InvariantCulture);
     }
 
+    // transforma a data em texto "2026-11-13" para salvar no banco
     private static string EscreverDia(DateTime dia)
     {
         return dia.ToString(FormatoDia, CultureInfo.InvariantCulture);
     }
 
+    // se a coluna estiver vazia (NULL), devolve "" para a tela
     private static string TextoOuVazio(SqliteDataReader leitor, int coluna)
     {
-        return leitor.IsDBNull(coluna) ? "" : leitor.GetString(coluna);
+        if (leitor.IsDBNull(coluna))
+        {
+            return "";
+        }
+        return leitor.GetString(coluna);
     }
 
+    // se o texto estiver vazio, salva NULL no banco
     private static object VazioViraNull(string texto)
     {
-        // Texto vazio é salvo como NULL no banco.
         if (string.IsNullOrWhiteSpace(texto))
+        {
             return DBNull.Value;
+        }
         return texto;
     }
 
+    // O dinheiro fica salvo como REAL (número com vírgula).
+    // Arredonda para 2 casas para não aparecer coisa tipo 3310,0000001.
     private static decimal LerDinheiro(SqliteDataReader leitor, int coluna)
     {
-        // O dinheiro é salvo como REAL. O valor é arredondado para 2 casas
-        // para evitar números como 3310,0000001.
-        return Math.Round((decimal)leitor.GetDouble(coluna), 2);
+        double valor = leitor.GetDouble(coluna);
+        return Math.Round((decimal)valor, 2);
     }
 }

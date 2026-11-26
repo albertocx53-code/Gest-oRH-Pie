@@ -20,13 +20,13 @@ A tela de Recrutamento já tinha a tabela de vagas, a de candidaturas, **Nova va
 ## Como a minha parte conversa com o resto
 
 ```
-Botão na tela (AuroraForm.Recrutamento.cs)
+Botão na tela (TelaPrincipal.Recrutamento.cs)
   -> Recrutamento (Aurora.Core)
-    -> RhService (sessão, perfil e validações)
-      -> IRhRepository -> RepositorioSqlite (Alberto) -> aurora.db
+    -> ServicoRh (sessão, perfil e validações)
+      -> IRepositorio -> RepositorioSqlite (Alberto) -> aurora.db
 ```
 
-Usei **métodos de extensão** em `Recrutamento`, o mesmo caminho do Jefferson e do Clóvis. Na tela, a chamada fica `data.AvancarEtapa(...)`, como se o método fosse do próprio `RhService`, mas ele fica num arquivo meu. O `RhService` não precisou mudar, e as regras de sessão, perfil e validação continuam valendo. O Gestor consulta, mas não grava: os botões já aparecem desligados, e o `RhService` recusa a operação mesmo assim.
+Usei **métodos de extensão** em `Recrutamento`, o mesmo caminho do Jefferson e do Clóvis. Na tela, a chamada fica `data.AvancarEtapa(...)`, como se o método fosse do próprio `ServicoRh`, mas ele fica num arquivo meu. O `ServicoRh` não precisou mudar, e as regras de sessão, perfil e validação continuam valendo. O Gestor consulta, mas não grava: os botões já aparecem desligados, e o `ServicoRh` recusa a operação mesmo assim.
 
 | Método (`Recrutamento.cs`) | O que faz |
 | --- | --- |
@@ -40,18 +40,18 @@ Usei **métodos de extensão** em `Recrutamento`, o mesmo caminho do Jefferson e
 | `MoverEtapa` | Coloca o candidato em uma etapa escolhida. |
 | `AvancarEtapa` | Leva para a etapa seguinte. |
 
-Regras que já vinham do `RhService` e que continuam valendo: vaga encerrada não recebe novas inscrições (mas quem já estava nela pode mudar de etapa), a etapa precisa estar em `RhOptions.Stages` e o nome tem até 120 caracteres.
+Regras que já vinham do `ServicoRh` e que continuam valendo: vaga encerrada não recebe novas inscrições (mas quem já estava nela pode mudar de etapa), a etapa precisa estar em `Opcoes.Stages` e o nome tem até 120 caracteres.
 
 ## Arquivos que eu criei ou mexi
 
 | Arquivo | O que é |
 | --- | --- |
 | `Aurora.Core/Recrutamento.cs` (novo) | Consultas e ações do recrutamento |
-| `Aurora.WinForms/AuroraForm.Recrutamento.cs` (novo) | Funil, Candidatos da vaga, Avançar etapa e Mudar de vaga |
-| `Aurora.WinForms/AuroraForm.Modules.cs` | Uma chamada ao meu código no fim de `HirePage`, comentários e **uma linha trocada** em `EditCandidate` (`SaveCandidate` virou `SalvarCandidatura`, que confere a duplicidade e depois chama o `SaveCandidate`) |
+| `Aurora.WinForms/TelaPrincipal.Recrutamento.cs` (novo) | Funil, Candidatos da vaga, Avançar etapa e Mudar de vaga |
+| `Aurora.WinForms/TelaPrincipal.Modulos.cs` | Uma chamada ao meu código no fim de `TelaDeRecrutamento`, comentários e **uma linha trocada** em `EditarCandidato` (`SalvarCandidato` virou `SalvarCandidatura`, que confere a duplicidade e depois chama o `SalvarCandidato`) |
 | `Aurora.WinForms/README.md` | Um parágrafo sobre a minha parte |
 
-Como o `AuroraForm.Modules.cs` do zip é o arquivo completo, ele substitui o que está na pasta do projeto.
+Como o `TelaPrincipal.Modulos.cs` do zip é o arquivo completo, ele substitui o que está na pasta do projeto.
 
 ## Roteiro para a apresentação
 
@@ -66,9 +66,9 @@ Como o `AuroraForm.Modules.cs` do zip é o arquivo completo, ele substitui o que
 
 ## Limitações
 
-- **Não compilei nem rodei nada.** O ambiente em que montei esta entrega não tem o SDK .NET, então o código foi escrito lendo os arquivos do grupo (`AuroraForm.Modules.cs`, `EntryForm.cs`, `RhService.cs`). Antes da apresentação, compile no Visual Studio (F5) e passe pelo roteiro acima.
-- **Sem testes automáticos.** Não recebi o `TestProgram.cs`, então não escrevi o `TesteDoRecrutamento.cs`. Também não escrevi consultas SQL, porque não recebi o `01_criar_tabelas.sql`.
-- A posição dos botões novos (y = 629) e do funil (y = 360) foi calculada pelas medidas da tela atual. Se algum botão ficar sobreposto ou cortado, é só ajustar essas coordenadas em `AuroraForm.Recrutamento.cs`.
+- **Não compilei nem rodei nada.** O ambiente em que montei esta entrega não tem o SDK .NET, então o código foi escrito lendo os arquivos do grupo (`TelaPrincipal.Modulos.cs`, `JanelaDeCadastro.cs`, `ServicoRh.cs`). Antes da apresentação, compile no Visual Studio (F5) e passe pelo roteiro acima.
+- **Sem testes automáticos.** Não recebi o `ProgramaDeTestes.cs`, então não escrevi o `TesteDoRecrutamento.cs`. Também não escrevi consultas SQL, porque não recebi o `01_criar_tabelas.sql`.
+- A posição dos botões novos (y = 629) e do funil (y = 360) foi calculada pelas medidas da tela atual. Se algum botão ficar sobreposto ou cortado, é só ajustar essas coordenadas em `TelaPrincipal.Recrutamento.cs`.
 - A repetição de candidato é conferida só pelo nome. Dois candidatos homônimos reais seriam bloqueados na mesma vaga.
 - `MoverEtapa` existe no serviço (permite voltar etapas para corrigir erros), mas a tela só usa `AvancarEtapa`. Para voltar uma etapa, use o **Alterar etapa** que já existia. Não há histórico de quem mudou a etapa e quando.
 - Para ver a minha parte funcionando, é só abrir a solução no Visual Studio e apertar F5.

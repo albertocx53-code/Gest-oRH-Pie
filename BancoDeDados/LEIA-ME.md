@@ -88,7 +88,7 @@ Tudo inventado. Usei os mesmos nomes que já apareciam na demonstração do sist
 | `RepositorioSqlite.cs` | Faz os SELECT, INSERT, UPDATE e DELETE de funcionários, ponto, folha, vagas, candidatos e agenda |
 | `ContasDoBanco.cs` | Procura o usuário na tabela `usuarios` na hora do login |
 
-As interfaces `IRhRepository` e `IAccountDirectory` já existiam no projeto. A camada de dados só implementa essas interfaces usando o banco, por isso as telas não mudaram nada. No `Program.cs`, a lista em memória (`DemoRh`) foi trocada pelo `RepositorioSqlite`.
+As interfaces `IRepositorio` e `IBuscaDeContas` já existiam no projeto. A camada de dados só implementa essas interfaces usando o banco, por isso as telas não mudaram nada. No `Program.cs`, a lista em memória (`DadosDeExemplo`) foi trocada pelo `RepositorioSqlite`.
 
 Alguns cuidados no código:
 

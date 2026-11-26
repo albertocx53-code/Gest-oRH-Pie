@@ -8,9 +8,9 @@ namespace Aurora.Tests;
 //
 // Testa o que eu acrescentei: a ficha do funcionário, as sugestões de cargo,
 // a mudança de situação (botão Inativar) e o cálculo do tempo de casa.
-// Os mesmos casos rodam duas vezes: com a lista em memória (DemoRh) e com o
+// Os mesmos casos rodam duas vezes: com a lista em memória (DadosDeExemplo) e com o
 // banco SQLite, num banco temporário que não mexe no aurora.db do sistema.
-// A parte da tela (abrir a ficha pelo botão) está no TestProgram.cs.
+// A parte da tela (abrir a ficha pelo botão) está no ProgramaDeTestes.cs.
 internal static class TesteDosFuncionarios
 {
     private const string Senha = "Aurora.demo26";
@@ -19,7 +19,7 @@ internal static class TesteDosFuncionarios
     public static void Rodar()
     {
         TestarTempoDeCasa();
-        TestarComOServico(new DemoRh(), new Authentication(new DemoAccounts()), "lista em memória");
+        TestarComOServico(new DadosDeExemplo(), new Autenticacao(new ContasDeExemplo()), "lista em memória");
         TestarComOBanco();
         Console.WriteLine("Cadastro de funcionários (Jefferson): todos os testes passaram.");
     }
@@ -35,18 +35,18 @@ internal static class TesteDosFuncionarios
 
     // Os casos valem para a lista em memória e para o banco, porque os dois começam
     // com os mesmos funcionários, o mesmo ponto da semana e a mesma folha de novembro.
-    private static void TestarComOServico(IRhRepository repo, Authentication login, string onde)
+    private static void TestarComOServico(IRepositorio repositorio, Autenticacao login, string onde)
     {
-        var sessaoDoRh = login.SignIn("rh", Senha)!;
-        var rh = new RhService(repo, sessaoDoRh);
-        var gestor = new RhService(repo, login.SignIn("gestor", Senha)!);
+        var sessaoDoRh = login.Entrar("rh", Senha)!;
+        var rh = new ServicoRh(repositorio, sessaoDoRh);
+        var gestor = new ServicoRh(repositorio, login.Entrar("gestor", Senha)!);
 
         // Ficha da Marina (101): atrasou nos 5 dias da semana e tem folha de novembro
         var marina = rh.ConsultarFicha(101, Hoje);
-        Conferir(marina.Funcionario.Name == "Marina Teixeira" && marina.Funcionario.Team == "Pessoas", onde, "ficha traz o cadastro");
+        Conferir(marina.Funcionario.Nome == "Marina Teixeira" && marina.Funcionario.Departamento == "Pessoas", onde, "ficha traz o cadastro");
         Conferir(marina.TempoDeCasa == "4 anos e 7 meses", onde, "tempo de casa na ficha");
         Conferir(marina.Presencas == 0 && marina.Atrasos == 5 && marina.Faltas == 0, onde, "ponto do mês na ficha");
-        Conferir(marina.UltimoPonto is { Status: "Atraso" } ultimoDaMarina && ultimoDaMarina.Day == Hoje, onde, "último registro de ponto");
+        Conferir(marina.UltimoPonto is { Situacao: "Atraso" } ultimoDaMarina && ultimoDaMarina.Dia == Hoje, onde, "último registro de ponto");
         Conferir(marina.SalarioVisivel && marina.UltimaFolha?.Total == 3365m, onde, "último salário para o RH");
 
         // Larissa (107) faltou um dia. Otávio (108) faltou três, e o último registro dele é falta, sem horário
@@ -54,7 +54,7 @@ internal static class TesteDosFuncionarios
         Conferir(larissa.Presencas == 4 && larissa.Atrasos == 0 && larissa.Faltas == 1, onde, "presenças e falta da Larissa");
         var otavio = rh.ConsultarFicha(108, Hoje);
         Conferir(otavio.Presencas == 2 && otavio.Faltas == 3, onde, "faltas do Otávio");
-        Conferir(otavio.UltimoPonto is { Status: "Falta", In: "" } ultimoDoOtavio && ultimoDoOtavio.Day == Hoje, onde, "falta é o último registro, sem horário");
+        Conferir(otavio.UltimoPonto is { Situacao: "Falta", Entrada: "" } ultimoDoOtavio && ultimoDoOtavio.Dia == Hoje, onde, "falta é o último registro, sem horário");
 
         // Caio (104) está de férias: sem ponto e sem folha, a ficha abre do mesmo jeito
         var caio = rh.ConsultarFicha(104, Hoje);
@@ -70,14 +70,14 @@ internal static class TesteDosFuncionarios
         var cargos = rh.CargosCadastrados();
         Conferir(cargos.Count == 8 && cargos[0] == "Analista de RH" && cargos.Contains("Gerente comercial"), onde, "lista de cargos");
         // O mesmo cargo escrito com outras maiúsculas não vira uma sugestão nova
-        rh.SaveEmployee(new(0, "Pessoa Cargo", "analista de rh", "Pessoas", "Ativo", Hoje));
+        rh.SalvarFuncionario(new(0, "Pessoa Cargo", "analista de rh", "Pessoas", "Ativo", Hoje));
         Conferir(rh.CargosCadastrados().Count == 8, onde, "cargo repetido não duplica a sugestão");
 
         // Rafael (102) tem ponto e folha: não pode ser excluído, mas pode ser inativado
-        Recusar(() => rh.DeleteEmployee(102), onde, "exclusão bloqueada para quem tem histórico");
+        Recusar(() => rh.ExcluirFuncionario(102), onde, "exclusão bloqueada para quem tem histórico");
         rh.MudarSituacao(102, "Inativo");
-        var rafael = rh.Employees.Single(item => item.Id == 102);
-        Conferir(rafael.Status == "Inativo" && rafael.Name == "Rafael Monteiro" && rafael.Role == "Desenvolvedor" && rafael.Team == "Tecnologia", onde, "inativar muda só a situação");
+        var rafael = rh.Funcionarios.Single(item => item.Id == 102);
+        Conferir(rafael.Situacao == "Inativo" && rafael.Nome == "Rafael Monteiro" && rafael.Cargo == "Desenvolvedor" && rafael.Departamento == "Tecnologia", onde, "inativar muda só a situação");
         Conferir(rh.ConsultarFicha(102, Hoje).Presencas == 5, onde, "histórico de ponto continua depois de inativar");
         Recusar(() => rh.MudarSituacao(102, "Inativo"), onde, "situação repetida");
         Recusar(() => rh.MudarSituacao(103, "Demitido"), onde, "situação que não existe");
@@ -85,7 +85,7 @@ internal static class TesteDosFuncionarios
         Recusar(() => rh.MudarSituacao(999, "Inativo"), onde, "matrícula que não existe");
 
         // Depois de sair da conta, nada é consultado
-        sessaoDoRh.SignOut();
+        sessaoDoRh.Sair();
         Recusar(() => _ = rh.ConsultarFicha(101, Hoje), onde, "sessão encerrada bloqueia a ficha");
     }
 
@@ -99,11 +99,11 @@ internal static class TesteDosFuncionarios
         try
         {
             CriadorDoBanco.CriarSeNaoExistir(banco, Path.Combine(AppContext.BaseDirectory, "BancoDeDados"));
-            TestarComOServico(new RepositorioSqlite(banco), new Authentication(new ContasDoBanco(banco)), "banco SQLite");
+            TestarComOServico(new RepositorioSqlite(banco), new Autenticacao(new ContasDoBanco(banco)), "banco SQLite");
 
             // Abrindo o banco de novo, a situação Inativo continua gravada
-            IRhRepository reaberto = new RepositorioSqlite(banco);
-            Conferir(reaberto.Employees.Single(item => item.Id == 102).Status == "Inativo", "banco SQLite", "situação continua salva");
+            IRepositorio reaberto = new RepositorioSqlite(banco);
+            Conferir(reaberto.Funcionarios.Single(item => item.Id == 102).Situacao == "Inativo", "banco SQLite", "situação continua salva");
         }
         finally
         {
@@ -123,7 +123,7 @@ internal static class TesteDosFuncionarios
         {
             acao();
         }
-        catch (RhRuleException)
+        catch (ErroDeRegra)
         {
             return; // o erro era esperado
         }

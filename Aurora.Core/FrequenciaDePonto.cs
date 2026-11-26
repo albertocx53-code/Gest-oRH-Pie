@@ -4,143 +4,238 @@ namespace Aurora.Core;
 
 // FrequenciaDePonto - Clóvis (ponto e frequência)
 //
-// Acrescenta ao RhService as consultas e lançamentos da área de ponto:
-//   ConsultarPeriodo -> registros de ponto de um intervalo de datas, com filtro por funcionário e ocorrência
-//   ResumoDoPeriodo  -> totais do intervalo (presenças, atrasos, faltas, horas) e totais por funcionário
-//   LancarFalta      -> lança uma falta (sem horário) em um dia
-//   LancarAtraso     -> lança um atraso (entrada depois do horário padrão) em um dia
-//   SemRegistro      -> funcionários ativos que ainda não têm ponto em um dia
-//   HorasTrabalhadas -> horas entre a entrada e a saída de um registro
+// Métodos que eu acrescentei na parte do ponto:
+//   ConsultarPeriodo -> pontos de um período, com filtro de funcionário e de ocorrência
+//   ResumoDoPeriodo  -> soma presenças, atrasos, faltas e horas do período
+//   LancarFalta      -> lança uma falta (sem horário)
+//   LancarAtraso     -> lança um atraso (entrada depois das 08:00)
+//   SemRegistro      -> funcionários ativos que ainda não bateram ponto no dia
+//   HorasTrabalhadas -> horas entre a entrada e a saída
 //
-// Estes são "métodos de extensão" (repare no "this RhService rh"), o mesmo caminho usado em
-// CadastroDeFuncionarios. Na tela a chamada fica data.ConsultarPeriodo(...), como se o método
-// fosse do próprio RhService, mas ele mora neste arquivo. Assim o RhService não precisou mudar.
-//
-// Tudo aqui passa pelos métodos públicos do RhService (Employees, AttendanceBetween e
-// SaveAttendance). Por isso as regras de sessão, de perfil e de validação continuam valendo:
-// o Gestor consulta o ponto, mas não lança nada.
+// São métodos de extensão (por causa do "this ServicoRh rh"). Na tela eu chamo
+// dados.ConsultarPeriodo(...) como se fosse do ServicoRh, mas o código fica aqui.
+// Assim não precisei mexer no ServicoRh, e as regras dele continuam valendo
+// (o Gestor consulta, mas não lança nada).
 public static class FrequenciaDePonto
 {
-    // Entrada esperada. Entrar depois disso é atraso; é o mesmo horário que a demonstração usa.
-    public static readonly TimeOnly HorarioPadrao = new(8, 0);
+    // Horário de entrada. Chegou depois disso é atraso.
+    public static readonly TimeOnly HorarioPadrao = new TimeOnly(8, 0);
 
-    // Maior intervalo aceito em uma consulta, para a tabela continuar legível.
+    // Período máximo da consulta (1 ano)
     public const int MaximoDeDias = 366;
 
-    // Registros de ponto entre duas datas (inclusive), do dia mais antigo para o mais novo e,
-    // no mesmo dia, em ordem de nome. "matricula" e "ocorrencia" são filtros opcionais:
-    // null quer dizer todos os funcionários / todas as ocorrências (Presença, Atraso ou Falta).
-    public static IReadOnlyList<Attendance> ConsultarPeriodo(this RhService rh, DateTime de, DateTime ate, int? matricula = null, string? ocorrencia = null)
+    // Pontos entre duas datas, ordenados por dia e depois por nome.
+    // matricula e ocorrencia são filtros: se vier null, mostra todos.
+    public static IReadOnlyList<RegistroDePonto> ConsultarPeriodo(this ServicoRh rh, DateTime de, DateTime ate, int? matricula = null, string? ocorrencia = null)
     {
-        // A ordem das datas é conferida pelo AttendanceBetween do RhService. Aqui só limitamos o tamanho.
+        // a ordem das datas o PontosEntre já confere, aqui só limito o tamanho
         if ((ate.Date - de.Date).TotalDays > MaximoDeDias - 1)
-            throw new RhRuleException($"O período pode ter no máximo {MaximoDeDias} dias.");
-        if (matricula is { } id && !rh.Employees.Any(item => item.Id == id))
-            throw new RhRuleException("Funcionário não encontrado.");
-        if (ocorrencia is not null && !RhOptions.AttendanceStatuses.Contains(ocorrencia))
-            throw new RhRuleException("Selecione uma ocorrência válida.");
+        {
+            throw new ErroDeRegra("O período pode ter no máximo " + MaximoDeDias + " dias.");
+        }
+        if (matricula != null && !ExisteFuncionario(rh, matricula.Value))
+        {
+            throw new ErroDeRegra("Funcionário não encontrado.");
+        }
+        if (ocorrencia != null && !Opcoes.SituacoesDoPonto.Contains(ocorrencia))
+        {
+            throw new ErroDeRegra("Selecione uma ocorrência válida.");
+        }
 
-        var nomes = Nomes(rh);
-        return rh.AttendanceBetween(de, ate)
-            .Where(item => matricula is null || item.Person == matricula)
-            .Where(item => ocorrencia is null || item.Status == ocorrencia)
-            .OrderBy(item => item.Day)
-            .ThenBy(item => nomes.GetValueOrDefault(item.Person, ""), StringComparer.CurrentCulture)
-            .ThenBy(item => item.Person)
-            .ToArray();
+        List<RegistroDePonto> lista = new List<RegistroDePonto>();
+        foreach (RegistroDePonto ponto in rh.PontosEntre(de, ate))
+        {
+            if (matricula != null && ponto.Matricula != matricula.Value) continue;
+            if (ocorrencia != null && ponto.Situacao != ocorrencia) continue;
+            lista.Add(ponto);
+        }
+
+        // ordena: primeiro pelo dia, depois pelo nome, depois pela matrícula
+        Dictionary<int, string> nomes = Nomes(rh);
+        lista.Sort((a, b) =>
+        {
+            int comparacao = a.Dia.CompareTo(b.Dia);
+            if (comparacao != 0) return comparacao;
+            comparacao = string.Compare(NomeDe(nomes, a.Matricula), NomeDe(nomes, b.Matricula), StringComparison.CurrentCulture);
+            if (comparacao != 0) return comparacao;
+            return a.Matricula.CompareTo(b.Matricula);
+        });
+        return lista;
     }
 
-    // Totais dos mesmos registros que ConsultarPeriodo devolve para os mesmos filtros.
-    // Assim o resumo mostrado na tela sempre bate com a tabela que está embaixo dele.
-    public static ResumoDeFrequencia ResumoDoPeriodo(this RhService rh, DateTime de, DateTime ate, int? matricula = null, string? ocorrencia = null)
+    // Soma os pontos que o ConsultarPeriodo devolve. Como usa a mesma consulta,
+    // o resumo sempre bate com a tabela da tela.
+    public static ResumoDeFrequencia ResumoDoPeriodo(this ServicoRh rh, DateTime de, DateTime ate, int? matricula = null, string? ocorrencia = null)
     {
-        var registros = rh.ConsultarPeriodo(de, ate, matricula, ocorrencia);
-        var nomes = Nomes(rh);
-        var porFuncionario = registros
-            .GroupBy(item => item.Person)
-            .Select(grupo => new FrequenciaDoFuncionario(
-                grupo.Key,
-                nomes.GetValueOrDefault(grupo.Key, $"Matrícula {grupo.Key}"),
-                grupo.Count(item => item.Status == "Presença"),
-                grupo.Count(item => item.Status == "Atraso"),
-                grupo.Count(item => item.Status == "Falta"),
-                Somar(grupo)))
-            .OrderBy(item => item.Nome, StringComparer.CurrentCulture)
-            .ToArray();
+        IReadOnlyList<RegistroDePonto> registros = rh.ConsultarPeriodo(de, ate, matricula, ocorrencia);
+        Dictionary<int, string> nomes = Nomes(rh);
+
+        // separa os registros de cada funcionário
+        Dictionary<int, List<RegistroDePonto>> porMatricula = new Dictionary<int, List<RegistroDePonto>>();
+        foreach (RegistroDePonto ponto in registros)
+        {
+            if (!porMatricula.ContainsKey(ponto.Matricula))
+            {
+                porMatricula[ponto.Matricula] = new List<RegistroDePonto>();
+            }
+            porMatricula[ponto.Matricula].Add(ponto);
+        }
+
+        // uma linha de totais para cada funcionário
+        List<FrequenciaDoFuncionario> porFuncionario = new List<FrequenciaDoFuncionario>();
+        foreach (int mat in porMatricula.Keys)
+        {
+            List<RegistroDePonto> dele = porMatricula[mat];
+            string nome = "Matrícula " + mat;
+            if (nomes.ContainsKey(mat)) nome = nomes[mat];
+
+            porFuncionario.Add(new FrequenciaDoFuncionario(mat, nome,
+                Contar(dele, "Presença"), Contar(dele, "Atraso"), Contar(dele, "Falta"), Somar(dele)));
+        }
+        porFuncionario.Sort((a, b) => string.Compare(a.Nome, b.Nome, StringComparison.CurrentCulture));
 
         return new ResumoDeFrequencia(
             de.Date,
             ate.Date,
             registros.Count,
-            registros.Count(item => item.Status == "Presença"),
-            registros.Count(item => item.Status == "Atraso"),
-            registros.Count(item => item.Status == "Falta"),
+            Contar(registros, "Presença"),
+            Contar(registros, "Atraso"),
+            Contar(registros, "Falta"),
             Somar(registros),
             porFuncionario);
     }
 
-    // Lança uma falta. A falta não tem horário de entrada nem de saída (o RhService limpa os dois).
-    // "hoje" é o dia usado como hoje (na demonstração, 13/11/2026): não se lança falta no futuro.
-    // Se o funcionário já tem ponto nesse dia, o RhService recusa e manda usar Editar registro.
-    public static void LancarFalta(this RhService rh, int matricula, DateTime dia, string motivo, DateTime hoje)
+    // Lança uma falta (sem entrada e sem saída).
+    // "hoje" é a data de hoje (na demonstração é 13/11/2026). Não dá pra lançar no futuro.
+    // Se já tem ponto nesse dia, o ServicoRh não deixa.
+    public static void LancarFalta(this ServicoRh rh, int matricula, DateTime dia, string motivo, DateTime hoje)
     {
         ConferirDia(rh, dia, hoje);
-        rh.SaveAttendance(new Attendance(matricula, dia, "", "", "Falta", motivo), false);
+        rh.SalvarPonto(new RegistroDePonto(matricula, dia, "", "", "Falta", motivo), false);
     }
 
-    // Lança um atraso. O atraso tem horário, e a entrada precisa ser depois do horário padrão.
-    // O resto (funcionário ativo, horários válidos, saída depois da entrada, dia sem ponto)
-    // é conferido pelo SaveAttendance do RhService.
-    public static void LancarAtraso(this RhService rh, int matricula, DateTime dia, string entrada, string saida, string motivo, DateTime hoje)
+    // Lança um atraso. A entrada tem que ser depois das 08:00.
+    // O resto (funcionário ativo, horários, dia sem ponto) o SalvarPonto confere.
+    public static void LancarAtraso(this ServicoRh rh, int matricula, DateTime dia, string entrada, string saida, string motivo, DateTime hoje)
     {
         ConferirDia(rh, dia, hoje);
-        // Só conferimos o horário quando o perfil pode editar: para o Gestor a mensagem certa
-        // é a do perfil, e ela vem do SaveAttendance.
-        if (rh.CanEdit && TryHora(entrada.Trim(), out var hora) && hora <= HorarioPadrao)
-            throw new RhRuleException($"Para lançar atraso, a entrada deve ser depois das {HorarioPadrao.ToString("HH:mm", CultureInfo.InvariantCulture)}.");
-        rh.SaveAttendance(new Attendance(matricula, dia, entrada, saida, "Atraso", motivo), false);
+        // Só confiro o horário se o perfil pode editar.
+        // Para o Gestor, a mensagem certa é a de perfil, que vem do SalvarPonto.
+        if (rh.PodeEditar && TentarLerHora(entrada.Trim(), out TimeOnly hora) && hora <= HorarioPadrao)
+        {
+            throw new ErroDeRegra("Para lançar atraso, a entrada deve ser depois das " + HorarioPadrao.ToString("HH:mm", CultureInfo.InvariantCulture) + ".");
+        }
+        rh.SalvarPonto(new RegistroDePonto(matricula, dia, entrada, saida, "Atraso", motivo), false);
     }
 
-    // Funcionários ativos que não têm nenhum registro de ponto no dia.
-    // A tela usa esta lista para já deixar selecionado quem ainda precisa de falta ou atraso.
-    public static IReadOnlyList<Employee> SemRegistro(this RhService rh, DateTime dia)
+    // Funcionários ativos que ainda não têm ponto no dia.
+    // A tela usa isso para já deixar selecionado quem precisa de falta ou atraso.
+    public static IReadOnlyList<Funcionario> SemRegistro(this ServicoRh rh, DateTime dia)
     {
-        var comRegistro = rh.AttendanceBetween(dia, dia).Select(item => item.Person).ToHashSet();
-        return rh.Employees.Where(item => item.Status == "Ativo" && !comRegistro.Contains(item.Id)).ToArray();
+        List<int> comRegistro = new List<int>();
+        foreach (RegistroDePonto ponto in rh.PontosEntre(dia, dia))
+        {
+            comRegistro.Add(ponto.Matricula);
+        }
+
+        List<Funcionario> lista = new List<Funcionario>();
+        foreach (Funcionario funcionario in rh.Funcionarios)
+        {
+            if (funcionario.Situacao == "Ativo" && !comRegistro.Contains(funcionario.Id))
+            {
+                lista.Add(funcionario);
+            }
+        }
+        return lista;
     }
 
-    // Horas entre a entrada e a saída (sem descontar intervalo). Falta ou horário inválido = zero.
-    public static TimeSpan HorasTrabalhadas(Attendance registro) =>
-        TryHora(registro.In, out var entrada) && TryHora(registro.Out, out var saida) && saida > entrada
-            ? saida - entrada
-            : TimeSpan.Zero;
-
-    // Ex.: 232 horas e 50 minutos -> "232 h 50 min".
-    public static string FormatarHoras(TimeSpan horas) => $"{(int)horas.TotalHours} h {horas.Minutes:00} min";
-
-    private static void ConferirDia(RhService rh, DateTime dia, DateTime hoje)
+    // Horas entre a entrada e a saída. Falta ou horário errado = zero.
+    public static TimeSpan HorasTrabalhadas(RegistroDePonto registro)
     {
-        if (rh.CanEdit && dia.Date > hoje.Date)
-            throw new RhRuleException("Não é possível lançar falta ou atraso em uma data futura.");
+        if (TentarLerHora(registro.Entrada, out TimeOnly entrada) && TentarLerHora(registro.Saida, out TimeOnly saida) && saida > entrada)
+        {
+            return saida - entrada;
+        }
+        return TimeSpan.Zero;
     }
 
-    private static TimeSpan Somar(IEnumerable<Attendance> registros) =>
-        registros.Aggregate(TimeSpan.Zero, (soma, item) => soma + HorasTrabalhadas(item));
+    // Ex.: 232 horas e 50 minutos vira "232 h 50 min"
+    public static string FormatarHoras(TimeSpan horas)
+    {
+        int totalDeHoras = (int)horas.TotalHours;
+        return totalDeHoras + " h " + horas.Minutes.ToString("00") + " min";
+    }
 
-    private static Dictionary<int, string> Nomes(RhService rh) => rh.Employees.ToDictionary(item => item.Id, item => item.Name);
+    private static void ConferirDia(ServicoRh rh, DateTime dia, DateTime hoje)
+    {
+        if (rh.PodeEditar && dia.Date > hoje.Date)
+        {
+            throw new ErroDeRegra("Não é possível lançar falta ou atraso em uma data futura.");
+        }
+    }
 
-    private static bool TryHora(string valor, out TimeOnly hora) =>
-        TimeOnly.TryParseExact(valor, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out hora);
+    // conta quantos registros têm a situação pedida
+    private static int Contar(IEnumerable<RegistroDePonto> registros, string situacao)
+    {
+        int quantidade = 0;
+        foreach (RegistroDePonto ponto in registros)
+        {
+            if (ponto.Situacao == situacao) quantidade++;
+        }
+        return quantidade;
+    }
+
+    // soma as horas trabalhadas de todos os registros
+    private static TimeSpan Somar(IEnumerable<RegistroDePonto> registros)
+    {
+        TimeSpan soma = TimeSpan.Zero;
+        foreach (RegistroDePonto ponto in registros)
+        {
+            soma = soma + HorasTrabalhadas(ponto);
+        }
+        return soma;
+    }
+
+    // matrícula -> nome de cada funcionário
+    private static Dictionary<int, string> Nomes(ServicoRh rh)
+    {
+        Dictionary<int, string> nomes = new Dictionary<int, string>();
+        foreach (Funcionario funcionario in rh.Funcionarios)
+        {
+            nomes[funcionario.Id] = funcionario.Nome;
+        }
+        return nomes;
+    }
+
+    private static string NomeDe(Dictionary<int, string> nomes, int matricula)
+    {
+        if (nomes.ContainsKey(matricula)) return nomes[matricula];
+        return "";
+    }
+
+    private static bool ExisteFuncionario(ServicoRh rh, int matricula)
+    {
+        foreach (Funcionario funcionario in rh.Funcionarios)
+        {
+            if (funcionario.Id == matricula) return true;
+        }
+        return false;
+    }
+
+    private static bool TentarLerHora(string texto, out TimeOnly hora)
+    {
+        return TimeOnly.TryParseExact(texto, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out hora);
+    }
 }
 
 // FrequenciaDoFuncionario - Clóvis
-// Uma linha do resumo por funcionário: quantas presenças, atrasos e faltas e quantas horas no período.
-public sealed record FrequenciaDoFuncionario(int Matricula, string Nome, int Presencas, int Atrasos, int Faltas, TimeSpan Horas);
+// Uma linha do resumo: presenças, atrasos, faltas e horas de um funcionário.
+public record FrequenciaDoFuncionario(int Matricula, string Nome, int Presencas, int Atrasos, int Faltas, TimeSpan Horas);
 
 // ResumoDeFrequencia - Clóvis
-// O que a janela "Frequência por período" mostra em cima da tabela.
-// Comparecimento = (presenças + atrasos) / registros: quem chegou atrasado compareceu.
-public sealed record ResumoDeFrequencia(
+// O que aparece em cima da tabela na janela "Frequência por período".
+// Comparecimento = (presenças + atrasos) / registros (quem chegou atrasado também veio).
+public record ResumoDeFrequencia(
     DateTime De,
     DateTime Ate,
     int Registros,
@@ -150,5 +245,12 @@ public sealed record ResumoDeFrequencia(
     TimeSpan Horas,
     IReadOnlyList<FrequenciaDoFuncionario> PorFuncionario)
 {
-    public double Comparecimento => Registros == 0 ? 0 : (double)(Presencas + Atrasos) / Registros;
+    public double Comparecimento
+    {
+        get
+        {
+            if (Registros == 0) return 0;
+            return (double)(Presencas + Atrasos) / Registros;
+        }
+    }
 }

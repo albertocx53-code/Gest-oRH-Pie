@@ -23,29 +23,29 @@ Para não mexer no que o grupo já tinha feito, coloquei a minha parte em arquiv
 
 ## Como os campos se ligam aos serviços
 
-Departamento e situação são listas fechadas. A mesma lista (`RhOptions`) preenche a tela e é usada pelo `RhService` para validar, então as duas nunca discordam. O banco confere de novo, como segunda proteção.
+Departamento e situação são listas fechadas. A mesma lista (`Opcoes`) preenche a tela e é usada pelo `ServicoRh` para validar, então as duas nunca discordam. O banco confere de novo, como segunda proteção.
 
-| Campo | Na tela | No serviço (`RhService.SaveEmployee`) | No banco (`funcionarios`) |
+| Campo | Na tela | No serviço (`ServicoRh.SalvarFuncionario`) | No banco (`funcionarios`) |
 | --- | --- | --- | --- |
 | Matrícula | Só leitura, na tabela e na ficha | Id 0 indica cadastro novo | `INTEGER PRIMARY KEY AUTOINCREMENT` |
 | Nome | Texto | Obrigatório, até 120 caracteres | `NOT NULL` |
 | Cargo | Texto com sugestões dos cargos já cadastrados | Obrigatório, até 120 caracteres | `NOT NULL` |
-| Departamento | Lista fechada (`RhOptions.Teams`) | Precisa estar na lista | Chave estrangeira para `departamentos` |
-| Situação | Lista fechada (`RhOptions.EmployeeStatuses`) | Precisa estar na lista | `CHECK` com Ativo, Férias, Afastado e Inativo |
+| Departamento | Lista fechada (`Opcoes.Teams`) | Precisa estar na lista | Chave estrangeira para `departamentos` |
+| Situação | Lista fechada (`Opcoes.SituacoesDoFuncionario`) | Precisa estar na lista | `CHECK` com Ativo, Férias, Afastado e Inativo |
 | Admissão | Data no formato dd/mm/aaaa | Entre 1900 e 2100 | Texto `AAAA-MM-DD` |
 
-O Gestor não grava nada: o botão já aparece desligado, e o `RhService` recusa a operação mesmo assim.
+O Gestor não grava nada: o botão já aparece desligado, e o `ServicoRh` recusa a operação mesmo assim.
 
 ## Como a minha parte conversa com o resto
 
 ```
-Botão na tela (AuroraForm.Funcionarios.cs)
+Botão na tela (TelaPrincipal.Funcionarios.cs)
   -> CadastroDeFuncionarios (Aurora.Core)
-    -> RhService (sessão, perfil e validações)
-      -> IRhRepository -> RepositorioSqlite (Alberto) -> aurora.db
+    -> ServicoRh (sessão, perfil e validações)
+      -> IRepositorio -> RepositorioSqlite (Alberto) -> aurora.db
 ```
 
-Usei **métodos de extensão** em `CadastroDeFuncionarios`. Na tela, a chamada fica `data.ConsultarFicha(...)`, como se o método fosse do próprio `RhService`, mas ele fica num arquivo meu. Assim o `RhService` não precisou mudar. Como esses métodos usam só o que o `RhService` já oferece, as regras de sessão, perfil e validação continuam valendo.
+Usei **métodos de extensão** em `CadastroDeFuncionarios`. Na tela, a chamada fica `data.ConsultarFicha(...)`, como se o método fosse do próprio `ServicoRh`, mas ele fica num arquivo meu. Assim o `ServicoRh` não precisou mudar. Como esses métodos usam só o que o `ServicoRh` já oferece, as regras de sessão, perfil e validação continuam valendo.
 
 A ficha junta dados de outras áreas do sistema: o ponto e a folha. Na demonstração, depois de registrar o ponto e lançar o salário do funcionário novo, a ficha mostra os dois.
 
@@ -54,13 +54,13 @@ A ficha junta dados de outras áreas do sistema: o ponto e a folha. Na demonstra
 | Arquivo | O que é |
 | --- | --- |
 | `Aurora.Core/CadastroDeFuncionarios.cs` (novo) | Ficha do funcionário, cargos cadastrados, mudar situação e tempo de casa |
-| `Aurora.WinForms/AuroraForm.Funcionarios.cs` (novo) | Coluna Matrícula, botões Consultar ficha e Inativar e sugestão de cargos |
-| `Aurora.WinForms/FichaDoFuncionarioForm.cs` (novo) | Janela da ficha |
+| `Aurora.WinForms/TelaPrincipal.Funcionarios.cs` (novo) | Coluna Matrícula, botões Consultar ficha e Inativar e sugestão de cargos |
+| `Aurora.WinForms/JanelaDaFicha.cs` (novo) | Janela da ficha |
 | `Aurora.Tests/TesteDosFuncionarios.cs` (novo) | Testes da minha parte |
 | `BancoDeDados/04_consultas_funcionarios.sql` (novo) | Consultas do cadastro em SQL |
-| `Aurora.WinForms/AuroraForm.Modules.cs` | Duas linhas que chamam o meu código, mais comentários |
-| `Aurora.Core/RhService.cs` e `Aurora.Core/Models.cs` | Só comentários |
-| `Aurora.Tests/TestProgram.cs` | Uma linha para chamar os meus testes e verificações da ficha no teste das telas |
+| `Aurora.WinForms/TelaPrincipal.Modulos.cs` | Duas linhas que chamam o meu código, mais comentários |
+| `Aurora.Core/ServicoRh.cs` e `Aurora.Core/Modelos.cs` | Só comentários |
+| `Aurora.Tests/ProgramaDeTestes.cs` | Uma linha para chamar os meus testes e verificações da ficha no teste das telas |
 | `Aurora.WinForms/README.md` | Um parágrafo sobre a minha parte |
 | `README.md` (principal) | Completei a minha linha na tabela da equipe, o item do cadastro e a descrição da pasta `Aurora.Core` |
 

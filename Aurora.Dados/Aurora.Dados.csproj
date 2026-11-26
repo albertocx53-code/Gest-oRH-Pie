@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Usa os modelos e a interface IRhRepository do projeto Core -->
+    <!-- Usa os modelos e a interface IRepositorio do projeto Core -->
     <ProjectReference Include="../Aurora.Core/Aurora.Core.csproj" />
   </ItemGroup>
 

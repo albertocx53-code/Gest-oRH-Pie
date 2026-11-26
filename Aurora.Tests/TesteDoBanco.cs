@@ -3,13 +3,10 @@ using Aurora.Dados;
 
 namespace Aurora.Tests;
 
-// TesteDoBanco - testes da camada de acesso aos dados
-//
-// Testes da camada de dados. Repete as regras testadas com a lista em memória,
-// agora usando o banco SQLite.
-//
-// Cada execução cria um banco novo em uma pasta temporária,
-// sem mexer no aurora.db do sistema.
+// Testes do banco de dados.
+// Repete os mesmos testes da lista em memória, só que agora com o banco SQLite.
+// Cada vez que roda, cria um banco novo numa pasta temporária
+// (não mexe no aurora.db do sistema).
 internal static class TesteDoBanco
 {
     private const string Senha = "Aurora.demo26";
@@ -42,96 +39,96 @@ internal static class TesteDoBanco
     // Confere se o script 02 inseriu todos os dados
     private static void TestarDadosFicticios(string banco)
     {
-        IRhRepository repo = new RepositorioSqlite(banco);
-        Conferir(repo.Employees.Count == 8, "8 funcionários");
-        Conferir(repo.Employees[0].Name == "Marina Teixeira" && repo.Employees[0].Team == "Pessoas", "JOIN com departamento");
-        Conferir(repo.Punches.Count == 30, "30 registros de ponto");
-        Conferir(repo.Punches.Count(p => p.Status == "Falta" && p.In == "" && p.Out == "") == 4, "falta vem sem horário");
-        Conferir(repo.Vacancies.Count == 3 && repo.Candidates.Count == 4, "vagas e candidatos");
-        Conferir(repo.Pay.Count == 12, "folha de outubro e novembro");
-        Conferir(repo.Pay.Single(p => p.Person == 101 && p.Month == new DateTime(2026, 11, 1)).Total == 3365m, "líquido da Marina");
-        Conferir(repo.Agenda.Count == 3 && repo.Agenda[0].Time == Hoje.AddHours(10.5), "agenda com data e hora");
+        IRepositorio repositorio = new RepositorioSqlite(banco);
+        Conferir(repositorio.Funcionarios.Count == 8, "8 funcionários");
+        Conferir(repositorio.Funcionarios[0].Nome == "Marina Teixeira" && repositorio.Funcionarios[0].Departamento == "Pessoas", "JOIN com departamento");
+        Conferir(repositorio.Pontos.Count == 30, "30 registros de ponto");
+        Conferir(repositorio.Pontos.Count(p => p.Situacao == "Falta" && p.Entrada == "" && p.Saida == "") == 4, "falta vem sem horário");
+        Conferir(repositorio.Vagas.Count == 3 && repositorio.Candidatos.Count == 4, "vagas e candidatos");
+        Conferir(repositorio.Folhas.Count == 12, "folha de outubro e novembro");
+        Conferir(repositorio.Folhas.Single(p => p.Matricula == 101 && p.Competencia == new DateTime(2026, 11, 1)).Total == 3365m, "líquido da Marina");
+        Conferir(repositorio.Agenda.Count == 3 && repositorio.Agenda[0].DataHora == Hoje.AddHours(10.5), "agenda com data e hora");
     }
 
     private static void TestarLogin(string banco)
     {
-        var login = new Authentication(new ContasDoBanco(banco));
-        Conferir(login.SignIn("rh", "senha errada") is null, "senha errada não entra");
-        Conferir(login.SignIn("ninguem", Senha) is null, "usuário que não existe não entra");
-        Conferir(login.SignIn(" ADMIN ", Senha)?.Role == RhRole.Administrator, "admin entra (maiúscula também)");
-        Conferir(login.SignIn("rh", Senha)?.Role == RhRole.HumanResources, "rh entra");
-        Conferir(login.SignIn("gestor", Senha)?.Role == RhRole.Manager, "gestor entra");
+        var login = new Autenticacao(new ContasDoBanco(banco));
+        Conferir(login.Entrar("rh", "senha errada") is null, "senha errada não entra");
+        Conferir(login.Entrar("ninguem", Senha) is null, "usuário que não existe não entra");
+        Conferir(login.Entrar(" ADMIN ", Senha)?.Perfil == PerfilDeAcesso.Administrador, "admin entra (maiúscula também)");
+        Conferir(login.Entrar("rh", Senha)?.Perfil == PerfilDeAcesso.RecursosHumanos, "rh entra");
+        Conferir(login.Entrar("gestor", Senha)?.Perfil == PerfilDeAcesso.Gestor, "gestor entra");
     }
 
-    // Mesmos casos do teste do RhService, agora com o banco
+    // Mesmos casos do teste do ServicoRh, agora com o banco
     private static void TestarRegrasComOServico(string banco)
     {
-        IRhRepository repo = new RepositorioSqlite(banco);
-        var login = new Authentication(new ContasDoBanco(banco));
-        var rh = new RhService(repo, login.SignIn("rh", Senha)!);
-        var gestor = new RhService(repo, login.SignIn("gestor", Senha)!);
+        IRepositorio repositorio = new RepositorioSqlite(banco);
+        var login = new Autenticacao(new ContasDoBanco(banco));
+        var rh = new ServicoRh(repositorio, login.Entrar("rh", Senha)!);
+        var gestor = new ServicoRh(repositorio, login.Entrar("gestor", Senha)!);
 
-        Recusar(() => gestor.DeleteEmployee(101), "gestor não pode apagar");
-        Recusar(() => rh.DeleteEmployee(101), "funcionário com histórico não é apagado");
-        Recusar(() => rh.SaveAttendance(new(101, Hoje, "08:00", "17:00", "Atraso"), false), "ponto duplicado");
-        Conferir(rh.AttendanceBetween(Hoje.AddDays(-4), Hoje).Count == 30, "busca de ponto por período");
+        Recusar(() => gestor.ExcluirFuncionario(101), "gestor não pode apagar");
+        Recusar(() => rh.ExcluirFuncionario(101), "funcionário com histórico não é apagado");
+        Recusar(() => rh.SalvarPonto(new(101, Hoje, "08:00", "17:00", "Atraso"), false), "ponto duplicado");
+        Conferir(rh.PontosEntre(Hoje.AddDays(-4), Hoje).Count == 30, "busca de ponto por período");
 
         // Edita o ponto: vira falta com motivo
-        rh.SaveAttendance(new(101, Hoje, "08:00", "17:00", "Falta", " Avisou a equipe. "), true);
-        var falta = rh.AttendanceBetween(Hoje, Hoje).Single(p => p.Person == 101);
-        Conferir(falta.In == "" && falta.Reason == "Avisou a equipe.", "falta salva com motivo e sem horário");
+        rh.SalvarPonto(new(101, Hoje, "08:00", "17:00", "Falta", " Avisou a equipe. "), true);
+        var falta = rh.PontosEntre(Hoje, Hoje).Single(p => p.Matricula == 101);
+        Conferir(falta.Entrada == "" && falta.Motivo == "Avisou a equipe.", "falta salva com motivo e sem horário");
 
         // Folha: salvar de novo no mesmo mês substitui, não duplica
-        rh.SavePayroll(new(101, Hoje, 5_200, 300, 50));
-        Conferir(rh.PayrollFor(Hoje).Count(p => p.Person == 101) == 1, "um lançamento por mês");
-        Conferir(rh.PayrollFor(Hoje).Single(p => p.Person == 101).Total == 5_450m, "valor novo da folha");
-        rh.SavePayroll(new(101, Hoje, 1234.56m, 0.1m, 0.2m));
-        Conferir(rh.PayrollFor(Hoje).Single(p => p.Person == 101).Base == 1234.56m, "centavos voltam certinho");
+        rh.SalvarFolha(new(101, Hoje, 5_200, 300, 50));
+        Conferir(rh.FolhaDoMes(Hoje).Count(p => p.Matricula == 101) == 1, "um lançamento por mês");
+        Conferir(rh.FolhaDoMes(Hoje).Single(p => p.Matricula == 101).Total == 5_450m, "valor novo da folha");
+        rh.SalvarFolha(new(101, Hoje, 1234.56m, 0.1m, 0.2m));
+        Conferir(rh.FolhaDoMes(Hoje).Single(p => p.Matricula == 101).Salario == 1234.56m, "centavos voltam certinho");
 
         // Vagas e candidatos
-        rh.ToggleVacancy(1);
-        Conferir(rh.Vacancies.Single(v => v.Id == 1).Status == "Encerrada", "vaga encerrada");
-        Recusar(() => rh.SaveCandidate(new(0, "Pessoa Teste", 1, "Triagem")), "vaga encerrada não aceita candidato novo");
-        rh.AddVacancy("Estagiário de dados", "Tecnologia");
-        var novaVaga = rh.Vacancies.Single(v => v.Title == "Estagiário de dados");
-        Conferir(novaVaga.Id == 4 && novaVaga.Team == "Tecnologia", "vaga nova ganha id 4");
-        rh.SaveCandidate(new(0, "Pedro D'Ávila", novaVaga.Id, "Triagem"));
-        Conferir(rh.Candidates.Any(c => c.Name == "Pedro D'Ávila" && c.Id == 5), "nome com apóstrofo salva normal");
+        rh.AbrirOuFecharVaga(1);
+        Conferir(rh.Vagas.Single(v => v.Id == 1).Situacao == "Encerrada", "vaga encerrada");
+        Recusar(() => rh.SalvarCandidato(new(0, "Pessoa Teste", 1, "Triagem")), "vaga encerrada não aceita candidato novo");
+        rh.NovaVaga("Estagiário de dados", "Tecnologia");
+        var novaVaga = rh.Vagas.Single(v => v.Titulo == "Estagiário de dados");
+        Conferir(novaVaga.Id == 4 && novaVaga.Departamento == "Tecnologia", "vaga nova ganha id 4");
+        rh.SalvarCandidato(new(0, "Pedro D'Ávila", novaVaga.Id, "Triagem"));
+        Conferir(rh.Candidatos.Any(c => c.Nome == "Pedro D'Ávila" && c.Id == 5), "nome com apóstrofo salva normal");
 
         // Funcionário novo recebe a matrícula 109; depois de apagado, ela não é reutilizada
-        rh.SaveEmployee(new(0, "Pessoa Teste", "Analista", "Pessoas", "Ativo", Hoje));
-        var criado = rh.Employees.Single(e => e.Name == "Pessoa Teste");
+        rh.SalvarFuncionario(new(0, "Pessoa Teste", "Analista", "Pessoas", "Ativo", Hoje));
+        var criado = rh.Funcionarios.Single(e => e.Nome == "Pessoa Teste");
         Conferir(criado.Id == 109, "matrícula 109");
-        rh.SaveEmployee(criado with { Team = "Financeiro", Status = "Férias" });
-        Conferir(rh.Employees.Single(e => e.Id == 109).Team == "Financeiro", "edição troca o departamento");
-        rh.DeleteEmployee(criado.Id);
-        rh.SaveEmployee(new(0, "Outra Pessoa", "Analista", "Pessoas", "Ativo", Hoje));
-        Conferir(rh.Employees.Single(e => e.Name == "Outra Pessoa").Id == 110, "matrícula apagada não é reaproveitada");
+        rh.SalvarFuncionario(criado with { Departamento = "Financeiro", Situacao = "Férias" });
+        Conferir(rh.Funcionarios.Single(e => e.Id == 109).Departamento == "Financeiro", "edição troca o departamento");
+        rh.ExcluirFuncionario(criado.Id);
+        rh.SalvarFuncionario(new(0, "Outra Pessoa", "Analista", "Pessoas", "Ativo", Hoje));
+        Conferir(rh.Funcionarios.Single(e => e.Nome == "Outra Pessoa").Id == 110, "matrícula apagada não é reaproveitada");
 
-        rh.AddAppointment("Reunião com a equipe", Hoje, "09:15", "Funcionários");
-        Conferir(rh.Agenda.Any(a => a.Title == "Reunião com a equipe" && a.Time == Hoje.AddHours(9.25)), "compromisso novo na agenda");
+        rh.AdicionarCompromisso("Reunião com a equipe", Hoje, "09:15", "Funcionários");
+        Conferir(rh.Agenda.Any(a => a.Titulo == "Reunião com a equipe" && a.DataHora == Hoje.AddHours(9.25)), "compromisso novo na agenda");
     }
 
-    // Chama o repositório direto, sem o RhService,
+    // Chama o repositório direto, sem o ServicoRh,
     // para confirmar que o próprio banco também bloqueia dados inválidos.
     private static void TestarChavesDoBanco(string banco)
     {
-        IRhRepository repo = new RepositorioSqlite(banco);
-        Recusar(() => repo.DeleteEmployee(102), "chave estrangeira segura o histórico");
-        Recusar(() => repo.SaveAttendance(new(102, Hoje, "09:00", "18:00", "Presença"), false), "chave primária do ponto");
-        Recusar(() => repo.SaveAttendance(new(999, Hoje, "09:00", "18:00", "Presença"), false), "ponto de matrícula que não existe");
-        Recusar(() => repo.SaveCandidate(new(0, "Fulano", 99, "Triagem")), "candidato em vaga que não existe");
-        Recusar(() => repo.SaveEmployee(new(0, "Fulano", "Cargo", "Setor que não existe", "Ativo", Hoje)), "departamento inválido");
-        Recusar(() => repo.SaveEmployee(new(0, "Fulano", "Cargo", "Pessoas", "Demitido", Hoje)), "CHECK da situação");
+        IRepositorio repositorio = new RepositorioSqlite(banco);
+        Recusar(() => repositorio.ExcluirFuncionario(102), "chave estrangeira segura o histórico");
+        Recusar(() => repositorio.SalvarPonto(new(102, Hoje, "09:00", "18:00", "Presença"), false), "chave primária do ponto");
+        Recusar(() => repositorio.SalvarPonto(new(999, Hoje, "09:00", "18:00", "Presença"), false), "ponto de matrícula que não existe");
+        Recusar(() => repositorio.SalvarCandidato(new(0, "Fulano", 99, "Triagem")), "candidato em vaga que não existe");
+        Recusar(() => repositorio.SalvarFuncionario(new(0, "Fulano", "Cargo", "Setor que não existe", "Ativo", Hoje)), "departamento inválido");
+        Recusar(() => repositorio.SalvarFuncionario(new(0, "Fulano", "Cargo", "Pessoas", "Demitido", Hoje)), "CHECK da situação");
     }
 
     // Abre o banco de novo e confere se os dados continuam salvos
     private static void TestarSeOsDadosFicamSalvos(string banco, string scripts)
     {
         CriadorDoBanco.CriarSeNaoExistir(banco, scripts); // não pode recriar por cima
-        IRhRepository repoNovo = new RepositorioSqlite(banco);
-        Conferir(repoNovo.Employees.Any(e => e.Name == "Outra Pessoa"), "funcionário continua salvo");
-        Conferir(repoNovo.Candidates.Any(c => c.Name == "Pedro D'Ávila"), "candidato continua salvo");
+        IRepositorio repositorioNovo = new RepositorioSqlite(banco);
+        Conferir(repositorioNovo.Funcionarios.Any(e => e.Nome == "Outra Pessoa"), "funcionário continua salvo");
+        Conferir(repositorioNovo.Candidatos.Any(c => c.Nome == "Pedro D'Ávila"), "candidato continua salvo");
     }
 
     private static void Conferir(bool ok, string oQue)
@@ -145,7 +142,7 @@ internal static class TesteDoBanco
         {
             acao();
         }
-        catch (RhRuleException)
+        catch (ErroDeRegra)
         {
             return; // o erro era esperado
         }

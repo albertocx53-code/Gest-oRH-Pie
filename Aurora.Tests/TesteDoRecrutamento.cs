@@ -8,7 +8,7 @@ namespace Aurora.Tests;
 //
 // Confere o funil de etapas, os candidatos da vaga, o cadastro sem nome repetido,
 // o Avançar etapa, o Mudar de vaga e as permissões (o Gestor só consulta).
-// Os mesmos casos rodam com a lista em memória (DemoRh) e com o banco SQLite,
+// Os mesmos casos rodam com a lista em memória (DadosDeExemplo) e com o banco SQLite,
 // num banco temporário que não mexe no aurora.db do sistema.
 internal static class TesteDoRecrutamento
 {
@@ -16,41 +16,41 @@ internal static class TesteDoRecrutamento
 
     public static void Rodar()
     {
-        Testar(new DemoRh(), new Authentication(new DemoAccounts()), "lista em memória");
+        Testar(new DadosDeExemplo(), new Autenticacao(new ContasDeExemplo()), "lista em memória");
         TestarComOBanco();
         Console.WriteLine("Recrutamento (Kerlon): todos os testes passaram.");
     }
 
-    private static void Testar(IRhRepository repositorio, Authentication login, string onde)
+    private static void Testar(IRepositorio repositorio, Autenticacao login, string onde)
     {
-        var rh = new RhService(repositorio, login.SignIn("rh", Senha)!);
-        var gestor = new RhService(repositorio, login.SignIn("gestor", Senha)!);
+        var rh = new ServicoRh(repositorio, login.Entrar("rh", Senha)!);
+        var gestor = new ServicoRh(repositorio, login.Entrar("gestor", Senha)!);
 
         // Consultas: as vagas abertas vêm primeiro e o funil tem todas as etapas, mesmo as vazias
         var vagas = rh.ConsultarVagas();
-        Conferir(vagas.Count == rh.Vacancies.Count, onde, "consulta traz todas as vagas");
-        Conferir(rh.FunilDeEtapas().Count == RhOptions.Stages.Count, onde, "funil com todas as etapas");
-        Conferir(rh.FunilDeEtapas().Sum(item => item.Candidatos) == rh.Candidates.Count, onde, "funil soma todos os candidatos");
+        Conferir(vagas.Count == rh.Vagas.Count, onde, "consulta traz todas as vagas");
+        Conferir(rh.FunilDeEtapas().Count == Opcoes.Etapas.Count, onde, "funil com todas as etapas");
+        Conferir(rh.FunilDeEtapas().Sum(item => item.Candidatos) == rh.Candidatos.Count, onde, "funil soma todos os candidatos");
         Conferir(rh.ResumoDasVagas().Count == vagas.Count, onde, "resumo com uma linha por vaga");
         Recusar(() => rh.ConsultarVagas("Fechada"), onde, "situação de vaga que não existe");
 
-        var abertas = vagas.Where(item => item.Status == "Aberta").ToArray();
+        var abertas = vagas.Where(item => item.Situacao == "Aberta").ToArray();
         Conferir(abertas.Length >= 2, onde, "dados de exemplo com duas vagas abertas");
         var primeira = abertas[0];
         var segunda = abertas[1];
 
         // Cadastro: começa na Triagem e o mesmo nome não entra duas vezes na mesma vaga
         rh.CadastrarCandidato("Candidata Teste", primeira.Id);
-        var nova = rh.Candidates.Single(item => item.Name == "Candidata Teste");
-        Conferir(nova.Stage == RhOptions.Stages[0], onde, "candidatura nova começa na primeira etapa");
+        var nova = rh.Candidatos.Single(item => item.Nome == "Candidata Teste");
+        Conferir(nova.Etapa == Opcoes.Etapas[0], onde, "candidatura nova começa na primeira etapa");
         Conferir(rh.CandidatosDaVaga(primeira.Id).Any(item => item.Id == nova.Id), onde, "aparece nos candidatos da vaga");
         Recusar(() => rh.CadastrarCandidato("candidata teste", primeira.Id), onde, "nome repetido na mesma vaga");
 
         // Avançar etapa e Mudar de vaga (a etapa continua a mesma)
         rh.AvancarEtapa(nova.Id);
-        Conferir(Atual(rh, nova.Id).Stage == RhOptions.Stages[1], onde, "avançou uma etapa");
+        Conferir(Atual(rh, nova.Id).Etapa == Opcoes.Etapas[1], onde, "avançou uma etapa");
         rh.VincularAVaga(nova.Id, segunda.Id);
-        Conferir(Atual(rh, nova.Id).Vacancy == segunda.Id && Atual(rh, nova.Id).Stage == RhOptions.Stages[1], onde, "mudou de vaga mantendo a etapa");
+        Conferir(Atual(rh, nova.Id).VagaId == segunda.Id && Atual(rh, nova.Id).Etapa == Opcoes.Etapas[1], onde, "mudou de vaga mantendo a etapa");
         Recusar(() => rh.VincularAVaga(nova.Id, segunda.Id), onde, "mudar para a vaga em que já está");
 
         // O Gestor consulta, mas não altera
@@ -59,7 +59,7 @@ internal static class TesteDoRecrutamento
         Recusar(() => gestor.CadastrarCandidato("Outra Pessoa", primeira.Id), onde, "gestor não cadastra candidato");
 
         // Na última etapa (Contratado) não tem como avançar
-        while (Atual(rh, nova.Id).Stage != RhOptions.Stages[^1]) rh.AvancarEtapa(nova.Id);
+        while (Atual(rh, nova.Id).Etapa != Opcoes.Etapas[^1]) rh.AvancarEtapa(nova.Id);
         Recusar(() => rh.AvancarEtapa(nova.Id), onde, "avançar depois da última etapa");
     }
 
@@ -73,11 +73,11 @@ internal static class TesteDoRecrutamento
         try
         {
             CriadorDoBanco.CriarSeNaoExistir(banco, Path.Combine(AppContext.BaseDirectory, "BancoDeDados"));
-            Testar(new RepositorioSqlite(banco), new Authentication(new ContasDoBanco(banco)), "banco SQLite");
+            Testar(new RepositorioSqlite(banco), new Autenticacao(new ContasDoBanco(banco)), "banco SQLite");
 
             // Abrindo o banco de novo, a candidatura continua gravada como Contratado
-            IRhRepository reaberto = new RepositorioSqlite(banco);
-            Conferir(reaberto.Candidates.Single(item => item.Name == "Candidata Teste").Stage == RhOptions.Stages[^1], "banco SQLite", "etapa continua salva");
+            IRepositorio reaberto = new RepositorioSqlite(banco);
+            Conferir(reaberto.Candidatos.Single(item => item.Nome == "Candidata Teste").Etapa == Opcoes.Etapas[^1], "banco SQLite", "etapa continua salva");
         }
         finally
         {
@@ -86,7 +86,7 @@ internal static class TesteDoRecrutamento
         }
     }
 
-    private static Candidate Atual(RhService rh, int id) => rh.Candidates.Single(item => item.Id == id);
+    private static Candidato Atual(ServicoRh rh, int id) => rh.Candidatos.Single(item => item.Id == id);
 
     private static void Conferir(bool ok, string onde, string oQue)
     {
@@ -99,7 +99,7 @@ internal static class TesteDoRecrutamento
         {
             acao();
         }
-        catch (RhRuleException)
+        catch (ErroDeRegra)
         {
             return; // o erro era esperado
         }
